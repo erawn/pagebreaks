@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pagebreaks"
+version = "0.0.1"
+dependencies = [
+    "requests",
+    "hypothesis",
+    "expecttest"
+]
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+where = ["src"]  # ["."] by default
+include = ["mypackage*"]  # ["*"] by default
+exclude = ["mypackage.tests*"]  # empty by default
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
