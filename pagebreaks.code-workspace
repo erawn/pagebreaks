@@ -1,0 +1,18 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "frontend"
+        }
+    ],
+    "settings": {
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        },
+        "eslint.validate": [
+            "javascript"
+        ]
+    }
+}

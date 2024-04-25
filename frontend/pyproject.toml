@@ -3,7 +3,7 @@ requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0
 build-backend = "hatchling.build"
 
 [project]
-name = "Pagebreak"
+name = "Pagebreaks"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.8"
@@ -33,24 +33,24 @@ source = "nodejs"
 fields = ["description", "authors", "urls"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["Pagebreak/labextension"]
+artifacts = ["Pagebreaks/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"Pagebreak/labextension" = "share/jupyter/labextensions/Pagebreaks"
+"Pagebreaks/labextension" = "share/jupyter/labextensions/Pagebreaks"
 "install.json" = "share/jupyter/labextensions/Pagebreaks/install.json"
 
 [tool.hatch.build.hooks.version]
-path = "Pagebreak/_version.py"
+path = "Pagebreaks/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "Pagebreak/labextension/static/style.js",
-    "Pagebreak/labextension/package.json",
+    "Pagebreaks/labextension/static/style.js",
+    "Pagebreaks/labextension/package.json",
 ]
-skip-if-exists = ["Pagebreak/labextension/static/style.js"]
+skip-if-exists = ["Pagebreaks/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
@@ -60,7 +60,7 @@ npm = ["jlpm"]
 build_cmd = "install:extension"
 npm = ["jlpm"]
 source_dir = "src"
-build_dir = "Pagebreak/labextension"
+build_dir = "Pagebreaks/labextension"
 
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"
@@ -75,6 +75,3 @@ before-build-python = ["jlpm clean:all"]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
-
-
-

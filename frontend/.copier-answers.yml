@@ -4,15 +4,16 @@ _src_path: https://github.com/jupyterlab/extension-template
 author_email: erawn@berkeley.edu
 author_name: Eric Rawn
 data_format: string
-file_extension: ""
+file_extension: ''
 has_binder: true
 has_settings: true
 kind: frontend
 labextension_name: Pagebreaks
-mimetype: ""
-mimetype_name: ""
+mimetype: ''
+mimetype_name: ''
 project_short_description: A JupyterLab extension.
 python_name: Pagebreaks
-repository: https://github.com/erawn/pagebreaks
+repository: ''
 test: true
-viewer_name: ""
+viewer_name: ''
+

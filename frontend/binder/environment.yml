@@ -1,10 +1,10 @@
-# a mybinder.org-ready environment for demoing Pagebreak
+# a mybinder.org-ready environment for demoing Pagebreaks
 # this environment may also be used locally on Linux/MacOS/Windows, e.g.
 #
 #   conda env update --file binder/environment.yml
-#   conda activate Pagebreak-demo
+#   conda activate Pagebreaks-demo
 #
-name: Pagebreak-demo
+name: Pagebreaks-demo
 
 channels:
   - conda-forge

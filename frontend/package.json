@@ -7,9 +7,9 @@
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "https://github.com/erawn/pagebreaks",
+    "homepage": "",
     "bugs": {
-        "url": "https://github.com/erawn/pagebreaks/issues"
+        "url": "/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -27,7 +27,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/erawn/pagebreaks.git"
+        "url": ".git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",
@@ -39,7 +39,7 @@
         "clean": "jlpm clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-        "clean:labextension": "rimraf Pagebreak/labextension Pagebreak/_version.py",
+        "clean:labextension": "rimraf Pagebreaks/labextension Pagebreaks/_version.py",
         "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache --ext .ts,.tsx",
@@ -97,7 +97,7 @@
     },
     "jupyterlab": {
         "extension": true,
-        "outputDir": "Pagebreak/labextension",
+        "outputDir": "Pagebreaks/labextension",
         "schemaDir": "schema"
     },
     "eslintIgnore": [
@@ -148,7 +148,7 @@
             "@typescript-eslint/no-namespace": "off",
             "@typescript-eslint/no-use-before-define": "off",
             "@typescript-eslint/quotes": [
-                "warn",
+                "error",
                 "single",
                 {
                     "avoidEscape": true,
@@ -164,6 +164,8 @@
         }
     },
     "prettier": {
+        "singleQuote": true,
+        "trailingComma": "none",
         "arrowParens": "avoid",
         "endOfLine": "auto",
         "overrides": [

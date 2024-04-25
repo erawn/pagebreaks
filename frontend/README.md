@@ -1,7 +1,7 @@
-# Pagebreak
+# Pagebreaks
 
-[![Github Actions Status](https://github.com/erawn/pagebreaks/workflows/Build/badge.svg)](https://github.com/erawn/pagebreaks/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/erawn/pagebreaks/main?urlpath=lab)
+[![Github Actions Status](/workflows/Build/badge.svg)](/actions/workflows/build.yml)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh//main?urlpath=lab)
 A JupyterLab extension.
 
 ## Requirements
@@ -13,7 +13,7 @@ A JupyterLab extension.
 To install the extension, execute:
 
 ```bash
-pip install Pagebreak
+pip install Pagebreaks
 ```
 
 ## Uninstall
@@ -21,7 +21,7 @@ pip install Pagebreak
 To remove the extension, execute:
 
 ```bash
-pip uninstall Pagebreak
+pip uninstall Pagebreaks
 ```
 
 ## Contributing
@@ -36,7 +36,7 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Change directory to the Pagebreak directory
+# Change directory to the Pagebreaks directory
 # Install package in development mode
 pip install -e "."
 # Link your development version of the extension with JupyterLab
@@ -65,7 +65,7 @@ jupyter lab build --minimize=False
 ### Development uninstall
 
 ```bash
-pip uninstall Pagebreak
+pip uninstall Pagebreaks
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
