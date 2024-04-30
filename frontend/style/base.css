@@ -3,14 +3,22 @@
 
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
-.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell:not(.jp-pb-pagebreakCell) {
+.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell:not(.jp-pb-pagebreakCodeCell) {
     margin-left: initial;
 }
 
-.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCell {
-    margin-left: 50px;
+.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell {
+    margin-left: 20px;
 }
 
-.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCell * {
+.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell * {
     margin-left: initial;
+}
+
+.jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
+    background: var(--jp-layout-color4);
+}
+
+.jp-pb-pagebreakCell .jp-CodeMirrorEditor.jp-Editor.jp-InputArea-editor {
+    margin-left: -30px;
 }

@@ -5,6 +5,7 @@ from typing import List, Tuple, Set, Dict, Type
 from IPython.core.error import InputRejected
 from IPython.testing.globalipapp import start_ipython
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
+from pagebreak_magic import pagebreak_magics
 
 DEBUG = True
 
@@ -157,13 +158,22 @@ class PagebreaksASTTransformer(baseASTTransform):
             self.exportedVariables,
             0,
         )
+        self.currentExportSet: set[Tuple[str, str]] = set()
 
-    def transformName(self, name: str, context: int):
-        return "pb_" + str(context) + "_" + name
+    def transformName(self, name: str, context: int, export: bool = False):
+
+        newLocalName = "pb_" + str(context) + "_" + name
+        newExportedName = "pb_export_" + str(context) + "_" + name
+        if export:
+            self.currentExportSet.add([newLocalName, newExportedName])
+            return newExportedName
+        else:
+            return newLocalName
 
     # always called first as the top level AST node, we're going to walk the tree and find
     # all the global definitions with a separate transformer, "variableFinder"
     def visit_Module(self, node: ast.Module, data: astWalkData):
+        self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
         if DEBUG:
@@ -181,8 +191,9 @@ class PagebreaksASTTransformer(baseASTTransform):
             if (
                 context is not data.currentContext
                 and node.id in data.exportedVariables.get(context, set())
-                and context < data.currentContext
-            ):  # only modify variables in later contexts
+                and context
+                < data.currentContext  # only export variables from earlier contexts
+            ):
 
                 if DEBUG:
                     print(
@@ -200,7 +211,9 @@ class PagebreaksASTTransformer(baseASTTransform):
                         + str(node.id)
                         + """' elsewhere in the notebook"""
                     )  # the only kind of error we can raise, otherwise IPython will disable the transformer
-                return ast.Name(id=self.transformName(node.id, context), ctx=node.ctx)
+                return ast.Name(
+                    id=self.transformName(node.id, context, export=True), ctx=node.ctx
+                )
         print(type(node.ctx))
         if node.id in data.userDefinedVariables:
             if DEBUG:
@@ -260,6 +273,26 @@ class PagebreaksASTTransformer(baseASTTransform):
 
 
 class Pagebreak(object):
+
+    def get_user_vars(self, shell, context: int, parameter_s=""):
+        user_ns = shell.user_ns
+        user_ns_hidden = shell.user_ns_hidden
+        nonmatching = object()  # This can never be in user_ns
+        user_ns_to_save = {
+            name: val
+            for name, val in user_ns.items()
+            if name.startswith("pb_" + str(context) + "_")
+            and (user_ns[name] is not user_ns_hidden.get(name, nonmatching))
+        }
+
+        # typelist = parameter_s.split()
+        # if typelist:
+        #     typeset = set(typelist)
+        #     out = [i for i in out if type(user_ns[i]).__name__ in typeset]
+
+        # out.sort()
+        return user_ns_to_save
+
     def __init__(self, ip: TerminalInteractiveShell):
         self.shell = ip
         self.ast_transformer = PagebreaksASTTransformer()
@@ -279,12 +312,16 @@ class Pagebreak(object):
                 print("Setting context to :[" + arg + "]")
             self.set_current_context(int(arg))
         self.shell.meta["pagebreak"] = "this is a test"
-
+        print(info)
         # set the current context
 
         # check for updates to pagebreak cells
 
         # save the current state
+        self.saved_state = self.get_user_vars(self.shell, self.current_context)
+
+        # cache exported variables
+        # for localName,globalName in self.ast_transformer.currentExportSet:
 
     def post_run_cell(self, result):
         pass
@@ -421,12 +458,15 @@ class Pagebreak(object):
 #         _shell.push(_dict_to_promote)
 
 _pb: Pagebreak | None = None
+_pb_magics: pagebreak_magics | None = None
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
     _pb = Pagebreak(ip)
+    # _pb_magics = pagebreak_magics(_pb)
     ip.events.register("pre_run_cell", _pb.pre_run_cell)
     ip.events.register("post_run_cell", _pb.post_run_cell)
+    # ip.register_magics(_pb_magics)
 
 
 def unload_ipython_extension(ip: TerminalInteractiveShell):
