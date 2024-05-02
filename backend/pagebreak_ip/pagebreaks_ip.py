@@ -5,6 +5,7 @@ from typing import List, Tuple, Set, Dict, Type
 from IPython.core.error import InputRejected
 from IPython.testing.globalipapp import start_ipython
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
+from IPython.core.interactiveshell import ExecutionResult, ExecutionInfo
 from pagebreak_magic import pagebreak_magics
 
 DEBUG = True
@@ -137,28 +138,30 @@ class DefinitionsFinder(baseASTTransform):
         return node
 
 
+class PagebreakError(RuntimeError):
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self.errors = errors
+        print(errors)
+
+
 @dataclass
 class astWalkData:
     currentContext: int
-    userDefinedVariables: set[str]
-    exportedVariables: dict
-    scopeDepth: int
+    userDefinedVariables: set[str]  # the variables we've defined so far in this scope
+    exportedVariables: dict[int, set[str]]  # the variables exported from each scope
 
 
 class PagebreaksASTTransformer(baseASTTransform):
 
-    currentContext = 1
-    userVariables: dict[int, set[str]] = {}
-    exportedVariables = {1: {"asf", "f"}, 2: {"foo"}}
-
     def __init__(self):
-        self.storedData = astWalkData(
-            self.currentContext,
-            self.userVariables.get(self.currentContext, set()),
-            self.exportedVariables,
-            0,
-        )
-        self.currentExportSet: set[Tuple[str, str]] = set()
+        self.storedData = None
+        self.userVariables: dict[int, set[str]] = (
+            {}
+        )  # variables we've defined so far in each pagebreak
+        self.currentExportSet: set[Tuple[str, str]] = (
+            set()
+        )  # for each exported variable, we store the pair of their local name and their global name
 
     def transformName(self, name: str, context: int, export: bool = False):
 
@@ -173,12 +176,19 @@ class PagebreaksASTTransformer(baseASTTransform):
     # always called first as the top level AST node, we're going to walk the tree and find
     # all the global definitions with a separate transformer, "variableFinder"
     def visit_Module(self, node: ast.Module, data: astWalkData):
+        if data is None:
+            raise RuntimeError(
+                "Have not yet connected to Jupyter Extension, is it installed?"
+            )
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
         if DEBUG:
-            print("New Definitions Found:")
-            print(trackedNames)
+            if (len(trackedNames)) > 0:
+                print("New Definitions Found:")
+                print(trackedNames)
+            # dump = ast.dump(node, indent=4)
+            # print(dump)
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
         data.userDefinedVariables.update(savedVariables)
@@ -189,7 +199,7 @@ class PagebreaksASTTransformer(baseASTTransform):
         # check if variable is exported from another context
         for context in data.exportedVariables.keys():
             if (
-                context is not data.currentContext
+                context != data.currentContext
                 and node.id in data.exportedVariables.get(context, set())
                 and context
                 < data.currentContext  # only export variables from earlier contexts
@@ -214,7 +224,6 @@ class PagebreaksASTTransformer(baseASTTransform):
                 return ast.Name(
                     id=self.transformName(node.id, context, export=True), ctx=node.ctx
                 )
-        print(type(node.ctx))
         if node.id in data.userDefinedVariables:
             if DEBUG:
                 print(
@@ -250,7 +259,7 @@ class PagebreaksASTTransformer(baseASTTransform):
     def visit_ClassDef(self, node: ast.ClassDef, data: astWalkData):
         return self.handleNewBlock(node, data)
 
-    def handleNewBlock(self, node, data):
+    def handleNewBlock(self, node, data: astWalkData):
         if node.name in data.userDefinedVariables:
             node.name = self.transformName(node.name, data.currentContext)
         defFinder = DefinitionsFinder()
@@ -267,7 +276,6 @@ class PagebreaksASTTransformer(baseASTTransform):
         # will throw an error for this reason
         data.userDefinedVariables.difference_update(newDefinitions)
 
-        data.scopeDepth += 1
         self.generic_visit(node, data)
         return node
 
@@ -282,7 +290,7 @@ class Pagebreak(object):
             name: val
             for name, val in user_ns.items()
             if name.startswith("pb_" + str(context) + "_")
-            and (user_ns[name] is not user_ns_hidden.get(name, nonmatching))
+            and (user_ns[name] != user_ns_hidden.get(name, nonmatching))
         }
 
         # typelist = parameter_s.split()
@@ -298,12 +306,16 @@ class Pagebreak(object):
         self.ast_transformer = PagebreaksASTTransformer()
         self.shell.ast_transformers.append(self.ast_transformer)
         self.current_context: int = 0
+        self.magics = None
+        self.exportedVariables
 
     def set_current_context(self, newcontext: int):
+        print("setting current context to:", newcontext)
         self.current_context = newcontext
         self.ast_transformer.currentContext = newcontext
 
-    def pre_run_cell(self, info):
+    def pre_run_cell(self, info: ExecutionInfo):
+        # print("pre run")
         # temporary: change contexts with simple pragma
         first_line = info.raw_cell.partition("\n")[0]
         if first_line.startswith("#changeContexts"):
@@ -311,162 +323,69 @@ class Pagebreak(object):
             if DEBUG:
                 print("Setting context to :[" + arg + "]")
             self.set_current_context(int(arg))
-        self.shell.meta["pagebreak"] = "this is a test"
-        print(info)
+        # self.shell.meta["pagebreak"] = "this is a test"
+        # print(info)
         # set the current context
-
-        # check for updates to pagebreak cells
-
-        # save the current state
-        self.saved_state = self.get_user_vars(self.shell, self.current_context)
-
+        if self.magics is not None:
+            schema: dict = self.magics.schema
+            cellsToScopes: dict[str, int] = schema["cellsToScopes"]
+            scopeList: dict[str, list[str]] = schema[
+                "scopeList"
+            ]  # TODO - convert to dict[int,list[str]]
+            currentContext = cellsToScopes[info.cell_id]
+            self.ast_transformer.storedData = astWalkData(
+                currentContext=currentContext,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables=scopeList,
+            )
+            self.set_current_context(cellsToScopes[info.cell_id])
         # cache exported variables
-        # for localName,globalName in self.ast_transformer.currentExportSet:
+        exportVariables = {}
+        for localName, globalName in self.ast_transformer.currentExportSet:
+            exportVariables[globalName] = copy.deepcopy(
+                self.shell.user_ns.get(localName)
+            )
+        self.shell.push(exportVariables)
 
-    def post_run_cell(self, result):
-        pass
+    def post_run_cell(self, result: ExecutionResult):
+        # print("post run")
+        if result.success:
+            currentExportSet = self.ast_transformer.currentExportSet
+            namesToDrop = []
+            for localName, globalName in currentExportSet:
+                if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
+                    globalName
+                ):
+                    # revert state here
+                    namesToDrop.append(globalName)
+
+            if len(namesToDrop) > 0:
+                self.shell.drop_by_id(namesToDrop)
+                raise PagebreakError(
+                    "Attempted to Overwrite Read-Only Exported Variables: '"
+                    + ", ".join(namesToDrop)
+                    + "'",
+                    "",
+                )
 
     def load_metadata(self):
         return
 
+    def set_magics(self, magics: pagebreak_magics):
+        self.magics = magics
 
-# class _VarWatcher(object):
-
-
-#     def get_user_vars(self, shell, parameter_s=''):
-#         user_ns = shell.user_ns
-#         user_ns_hidden = shell.user_ns_hidden
-#         nonmatching = object()  # This can never be in user_ns
-#         user_ns_to_save = {name: val for name, val in user_ns.items()
-#             if not name.startswith('_') \
-#                 and not name.startswith('user_ns') \
-#                 and (user_ns[name] is not user_ns_hidden.get(name, nonmatching)) }
-
-
-#         # typelist = parameter_s.split()
-#         # if typelist:
-#         #     typeset = set(typelist)
-#         #     out = [i for i in out if type(user_ns[i]).__name__ in typeset]
-
-#         # out.sort()
-#         return user_ns_to_save
-
-
-#     def __init__(self, ip):
-#         self.shell = ip
-#         self.last_x = None
-#         self.contexts = {0:{'state' : {}, 'tracked_vars' : []},
-#                         1: {'state' : {'d':3}, 'tracked_vars' : ['d', 'e']}, \
-#                          2:{'state': {'a':2}, 'tracked_vars': ['a','b','c','f']}} # Dummy Value for Testing
-#         self.all_tracked_vars = list(itertools.chain.from_iterable(self.contexts[key]['tracked_vars'] for key in self.contexts)) # long way of getting all tracked vars across all contexts
-#         self.pbvarsglobalsave = None
-#         self.current_context = 0 # default value
-#         self.ast_transformer = PagebreaksWrapper()
-#         self.shell.ast_transformers.append(self.ast_transformer)
-#         #LOOK FOR PAGEBREAKS, MAKE LIST OF TRACKED VARS
-
-#     def pre_run_cell(self, info):
-#         #CHECK IF IN PB
-
-#         #IF SO
-#         _shell = self.shell
-#         _user_ns = _shell.user_ns
-#         _user_ns_hidden = _shell.user_ns_hidden
-#         _nonmatching = object()
-
-#         #get current context (currently a hack)
-#         first_line = info.raw_cell.partition('\n')[0]
-#         if first_line.startswith('#changeContexts'):
-#             arg = first_line.partition(' ')[2]
-#             print('Setting context to :['+arg+']')
-#             self.current_context = int(arg)
-
-#         #SAVE USER_NS
-#         self.pbvarsglobalsave = self.get_user_vars(self.shell).copy()
-
-#         # exported
-
-#         # If existing context exists, load it
-#         if self.current_context in self.contexts:
-#             _shell.push(self.contexts[self.current_context]['state'])
-#         else:
-#             self.contexts[self.current_context] = {'state' : {}, 'tracked_vars' : []}
-
-#         print("current context is: ["+str(self.current_context)+"]")
-#         pprint.pprint(self.contexts[self.current_context])
-
-#         # pprint.pprint(get_user_vars(_shell))
-#         # print('info.raw_cell =', info.raw_cell)
-#         # print('info.store_history =', info.store_history)
-#         # print('info.silent =', info.silent)
-#         # print('info.shell_futures =', info.shell_futures)
-
-#         # print(info.)
-#         print('RUNNING CELL')
-
-#     def post_run_cell(self, result):
-#         #if cell errored, revert
-
-#         print('FINISHED RUNNING CELL')
-#         #if cell exited successfully
-#         _shell = self.shell
-#         _user_ns = _shell.user_ns
-#         _user_ns_hidden = _shell.user_ns_hidden
-#         _nonmatching = object()
-
-
-#         #get user variables
-#         _user_ns_to_save = self.get_user_vars(_shell).copy()
-
-#         #get vars to promote
-#         _vars_to_promote = self.contexts[self.current_context]['tracked_vars']
-
-#         #initialize to avoid errors loading
-#         if self.pbvarsglobalsave is None:
-#             self.pbvarsglobalsave = _user_ns_to_save
-
-#         # Check for overwrites of read-only variables
-#         for read_only_var in self.all_tracked_vars:
-#             if read_only_var not in _vars_to_promote and \
-#                 self.pbvarsglobalsave.get(read_only_var) != _shell.user_ns.get(read_only_var):
-#                 #revert state and raise an exception
-#                 _shell.drop_by_id(_user_ns_to_save) #cant use user variables after this point!
-#                 _shell.push(self.pbvarsglobalsave)
-#                 raise ValueError('\'' + read_only_var + '\' is read-only')
-
-#         # if we didn't overwrite something we weren't supposed to, save the current context
-#         self.contexts[self.current_context]['state'] = _user_ns_to_save.copy()
-
-#         print("new context is: ["+str(self.current_context)+"]")
-#         pprint.pprint(self.contexts[self.current_context])
-
-#         # load our global context
-#         _shell.drop_by_id(_user_ns_to_save) #cant use user variables after this point!
-#         _shell.push(self.pbvarsglobalsave)
-
-#         # promote our designated variables forward
-#         _dict_to_promote = {key: self.contexts[self.current_context]['state'][key] for key in _vars_to_promote if key in self.contexts[self.current_context]['state']}
-
-#         #simulate closures for any exported functions
-#         #print('info.raw_cell =', result.info.raw_cell)
-#         #cell_symtable = self.generate_symtable(result.info.raw_cell, DEBUG=False)
-#         # tab = self.search_symboltable(cell_symtable, 'f', DEBUG=False)
-
-
-#         # print("variables promoted")
-#         # pprint.pprint(_dict_to_promote)
-#         _shell.push(_dict_to_promote)
 
 _pb: Pagebreak | None = None
 _pb_magics: pagebreak_magics | None = None
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
+    _pb_magics = pagebreak_magics(ip)
     _pb = Pagebreak(ip)
-    # _pb_magics = pagebreak_magics(_pb)
+    _pb.set_magics(_pb_magics)
     ip.events.register("pre_run_cell", _pb.pre_run_cell)
     ip.events.register("post_run_cell", _pb.post_run_cell)
-    # ip.register_magics(_pb_magics)
+    ip.register_magics(_pb_magics)
 
 
 def unload_ipython_extension(ip: TerminalInteractiveShell):

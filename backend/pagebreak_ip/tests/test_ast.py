@@ -2,7 +2,7 @@ import pytest
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from hypothesis import given
 from hypothesis.strategies import text, lists
-from pagebreak import pagebreak_ip as pagebreak
+import pagebreaks_ip
 import ast
 from pprint import pprint
 import expecttest
@@ -16,7 +16,7 @@ import sys
 class Test_AST:
 
     def test_groundTest(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 # This is a comment
 import pprint
@@ -45,7 +45,7 @@ print(f())"""
         assert dump.count("id='asf'") == 0
 
     def test_namespacesareleftalone(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 a = 3
 class Namespace():
@@ -61,7 +61,7 @@ n.a = 4
         assert dump.count("attr='a'") == 1
 
     def test_classes(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 a = 3
 b = 2 + a
@@ -83,7 +83,7 @@ n.f(a)
         assert dump.count("attr='a'") == 2
 
     def test_globalkeyword(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 a = 1
 def f():
@@ -102,7 +102,7 @@ f()
         assert dump.count("attr='a'") == 0
 
     def test_forloop(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 for i in range(3):
     print(i)
@@ -115,7 +115,7 @@ for i in range(3):
         assert dump.count("id='i'") == 0
 
     def test_with(self):
-        pbw = pagebreak.PagebreaksASTTransformer()
+        pbw = pagebreaks_ip.PagebreaksASTTransformer()
         code = """
 with open("file.txt", "w") as file:
     file.write("test")

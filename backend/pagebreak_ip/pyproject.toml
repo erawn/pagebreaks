@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pagebreaks"
+name = "pagebreaks_ip"
 version = "0.0.1"
 dependencies = [
     "requests",

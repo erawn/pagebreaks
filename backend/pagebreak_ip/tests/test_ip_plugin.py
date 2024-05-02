@@ -2,7 +2,7 @@ import pytest
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from hypothesis import given
 from hypothesis.strategies import text, lists
-from pagebreak import pagebreak_ip as pagebreak
+import pagebreaks_ip as pagebreaks
 import ast
 from pprint import pprint
 import expecttest

@@ -1,0 +1,3 @@
+# Setup
+
+pip install -e "."
