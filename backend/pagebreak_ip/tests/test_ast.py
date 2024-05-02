@@ -17,6 +17,13 @@ class Test_AST:
 
     def test_groundTest(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 # This is a comment
 import pprint
@@ -41,11 +48,18 @@ print(f())"""
         print(dump)
         assert dump.count("id='a'") == 0
         assert dump.count("attr='a'") == 1
-        assert dump.count("id='pb_1_a'") == 3
+        assert dump.count("id='pb_0_a'") == 3
         assert dump.count("id='asf'") == 0
 
     def test_namespacesareleftalone(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 a = 3
 class Namespace():
@@ -56,12 +70,19 @@ n.a = 4
         tree = ast.parse(code, mode="exec")
         node = pbw.visit(tree)
         dump = ast.dump(node, indent=4)
-        assert dump.count("id='pb_1_a'") == 1
+        assert dump.count("id='pb_0_a'") == 1
         assert dump.count("id='a'") == 0
         assert dump.count("attr='a'") == 1
 
     def test_classes(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 a = 3
 b = 2 + a
@@ -78,12 +99,19 @@ n.f(a)
         node = pbw.visit(tree)
         dump = ast.dump(node, indent=4)
         print(dump)
-        assert dump.count("id='pb_1_a'") == 4
+        assert dump.count("id='pb_0_a'") == 4
         assert dump.count("id='a'") == 1
         assert dump.count("attr='a'") == 2
 
     def test_globalkeyword(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 a = 1
 def f():
@@ -97,12 +125,19 @@ f()
         node = pbw.visit(tree)
         dump = ast.dump(node, indent=4)
         print(dump)
-        assert dump.count("id='pb_1_a'") == 5
-        assert dump.count("pb_1_a") == 6
+        assert dump.count("id='pb_0_a'") == 5
+        assert dump.count("pb_0_a") == 6
         assert dump.count("attr='a'") == 0
 
     def test_forloop(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 for i in range(3):
     print(i)
@@ -111,11 +146,18 @@ for i in range(3):
         node = pbw.visit(tree)
         dump = ast.dump(node, indent=4)
         print(dump)
-        assert dump.count("id='pb_1_i'") == 2
+        assert dump.count("id='pb_0_i'") == 2
         assert dump.count("id='i'") == 0
 
     def test_with(self):
         pbw = pagebreaks_ip.PagebreaksASTTransformer()
+        pbw.setStoredData(
+            pagebreaks_ip.astWalkData(
+                currentContext=0,
+                userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                exportedVariables={},
+            )
+        )
         code = """
 with open("file.txt", "w") as file:
     file.write("test")
@@ -124,4 +166,4 @@ with open("file.txt", "w") as file:
         node = pbw.visit(tree)
         dump = ast.dump(node, indent=4)
         print(dump)
-        assert dump.count("id='pb_1_file'") == 2
+        assert dump.count("id='pb_0_file'") == 2

@@ -16,9 +16,22 @@ DEBUG = True
 #     def __init__(self):
 #         self.namesFound = []
 
+
 #     def visit_Name(self, node: ast.Name):
 #         self.namesFound.append(node.id)
 #         return node
+@dataclass
+class astWalkData:
+    currentContext: int
+    userDefinedVariables: set[str]  # the variables we've defined so far in this scope
+    exportedVariables: dict[int, set[str]]  # the variables exported from each scope
+
+
+def transformName(name: str, context: int, export: bool = False):
+    if export:
+        return "pb_export_" + name
+    else:
+        return "pb_" + str(context) + "_" + name
 
 
 class baseASTTransform(ast.NodeTransformer):
@@ -26,11 +39,18 @@ class baseASTTransform(ast.NodeTransformer):
     def __init__(self):
         self.storedData = None
 
+    def setStoredData(self, data: astWalkData):
+        self.storedData = data
+
+    def getStoredData(self):
+        return self.storedData
+
     def visit(self, node, data=None):
         if data == None:  # top level call
             data = self.storedData
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
+        # print("visit data:", data)
         return visitor(node, copy.deepcopy(data))
 
     def generic_visit(self, node, data):
@@ -145,17 +165,10 @@ class PagebreakError(RuntimeError):
         print(errors)
 
 
-@dataclass
-class astWalkData:
-    currentContext: int
-    userDefinedVariables: set[str]  # the variables we've defined so far in this scope
-    exportedVariables: dict[int, set[str]]  # the variables exported from each scope
-
-
 class PagebreaksASTTransformer(baseASTTransform):
 
     def __init__(self):
-        self.storedData = None
+        super().__init__()
         self.userVariables: dict[int, set[str]] = (
             {}
         )  # variables we've defined so far in each pagebreak
@@ -163,34 +176,32 @@ class PagebreaksASTTransformer(baseASTTransform):
             set()
         )  # for each exported variable, we store the pair of their local name and their global name
 
-    def transformName(self, name: str, context: int, export: bool = False):
+    def setStoredData(self, data: astWalkData):
+        super().setStoredData(data)
 
-        newLocalName = "pb_" + str(context) + "_" + name
-        newExportedName = "pb_export_" + str(context) + "_" + name
-        if export:
-            self.currentExportSet.add([newLocalName, newExportedName])
-            return newExportedName
-        else:
-            return newLocalName
+    def getStoredData(self):
+        return super().getStoredData()
 
     # always called first as the top level AST node, we're going to walk the tree and find
     # all the global definitions with a separate transformer, "variableFinder"
     def visit_Module(self, node: ast.Module, data: astWalkData):
         if data is None:
-            raise RuntimeError(
-                "Have not yet connected to Jupyter Extension, is it installed?"
+            print(
+                "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
+            return node
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
-        if DEBUG:
-            if (len(trackedNames)) > 0:
-                print("New Definitions Found:")
-                print(trackedNames)
-            # dump = ast.dump(node, indent=4)
-            # print(dump)
+        # if DEBUG:
+        #     if (len(trackedNames)) > 0:
+        #         print("New Definitions Found:")
+        #         print(trackedNames)
+        # dump = ast.dump(node, indent=4)
+        # print(dump)
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
+        print("saved variables", savedVariables)
         data.userDefinedVariables.update(savedVariables)
         self.generic_visit(node, data)
         return node
@@ -204,15 +215,15 @@ class PagebreaksASTTransformer(baseASTTransform):
                 and context
                 < data.currentContext  # only export variables from earlier contexts
             ):
-
-                if DEBUG:
-                    print(
-                        "changing name ["
-                        + node.id
-                        + "] to ["
-                        + self.transformName(node.id, context)
-                        + "]"
-                    )
+                print("here")
+                # if DEBUG:
+                #     print(
+                #         "changing name ["
+                #         + node.id
+                #         + "] to ["
+                #         + self.transformName(node.id, context)
+                #         + "]"
+                #     )
                 if isinstance(
                     node.ctx, ast.Store
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
@@ -222,7 +233,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                         + """' elsewhere in the notebook"""
                     )  # the only kind of error we can raise, otherwise IPython will disable the transformer
                 return ast.Name(
-                    id=self.transformName(node.id, context, export=True), ctx=node.ctx
+                    id=transformName(node.id, context, export=True), ctx=node.ctx
                 )
         if node.id in data.userDefinedVariables:
             if DEBUG:
@@ -230,11 +241,11 @@ class PagebreaksASTTransformer(baseASTTransform):
                     "changing name ["
                     + node.id
                     + "] to ["
-                    + self.transformName(node.id, data.currentContext)
+                    + transformName(node.id, data.currentContext)
                     + "]"
                 )
             return ast.Name(
-                id=self.transformName(node.id, data.currentContext), ctx=node.ctx
+                id=transformName(node.id, data.currentContext), ctx=node.ctx
             )
 
         return node
@@ -244,13 +255,13 @@ class PagebreaksASTTransformer(baseASTTransform):
         return node
 
     def visit_Global(self, node: ast.Global, data: astWalkData):
-        def transformName(name):
+        def transName(name):
             if name in data.userDefinedVariables:
-                return self.transformName(name, data.currentContext)
+                return transformName(name, data.currentContext)
             else:
                 return name
 
-        newNames = list(map(transformName, node.names))
+        newNames = list(map(transName, node.names))
         return ast.Global(names=newNames)
 
     def visit_FunctionDef(self, node, data: astWalkData):
@@ -261,7 +272,7 @@ class PagebreaksASTTransformer(baseASTTransform):
 
     def handleNewBlock(self, node, data: astWalkData):
         if node.name in data.userDefinedVariables:
-            node.name = self.transformName(node.name, data.currentContext)
+            node.name = transformName(node.name, data.currentContext)
         defFinder = DefinitionsFinder()
         newDefinitions = defFinder.getDefinitionsAtNode(node)
         # check if any defs are overwriting exported variables
@@ -307,7 +318,7 @@ class Pagebreak(object):
         self.shell.ast_transformers.append(self.ast_transformer)
         self.current_context: int = 0
         self.magics = None
-        self.exportedVariables
+        self.exportedVariables: dict[int, set[str]] = {}
 
     def set_current_context(self, newcontext: int):
         print("setting current context to:", newcontext)
@@ -317,34 +328,55 @@ class Pagebreak(object):
     def pre_run_cell(self, info: ExecutionInfo):
         # print("pre run")
         # temporary: change contexts with simple pragma
-        first_line = info.raw_cell.partition("\n")[0]
-        if first_line.startswith("#changeContexts"):
-            arg = first_line.partition(" ")[2]
-            if DEBUG:
-                print("Setting context to :[" + arg + "]")
-            self.set_current_context(int(arg))
+        # first_line = info.raw_cell.partition("\n")[0]
+        # if first_line.startswith("#changeContexts"):
+        #     arg = first_line.partition(" ")[2]
+        #     if DEBUG:
+        #         print("Setting context to :[" + arg + "]")
+        #     self.set_current_context(int(arg))
         # self.shell.meta["pagebreak"] = "this is a test"
         # print(info)
         # set the current context
-        if self.magics is not None:
-            schema: dict = self.magics.schema
-            cellsToScopes: dict[str, int] = schema["cellsToScopes"]
-            scopeList: dict[str, list[str]] = schema[
-                "scopeList"
-            ]  # TODO - convert to dict[int,list[str]]
-            currentContext = cellsToScopes[info.cell_id]
-            self.ast_transformer.storedData = astWalkData(
+        if self.magics is None:
+            if self.magics.schema is None:
+                print("magics error")
+                return
+
+        schema: dict = self.magics.schema
+
+        cellsToScopes: dict[str, int] = schema.get("cellsToScopes", {})
+        scopeList: dict[int, set[str]] = {
+            int(key): set(val) for (key, val) in schema.get("scopeList", {}).items()
+        }
+        currentContext: int = cellsToScopes[info.cell_id]
+        self.ast_transformer.setStoredData(
+            astWalkData(
                 currentContext=currentContext,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables=scopeList,
             )
-            self.set_current_context(cellsToScopes[info.cell_id])
+        )
+        print("setting data:", self.ast_transformer.getStoredData())
+        self.set_current_context(cellsToScopes[info.cell_id])
         # cache exported variables
+
+        scopesToExport: dict[int, set[str]] = {
+            context: val
+            for (context, val) in scopeList.items()
+            if context < currentContext
+        }
+        exportVariableNames: dict[str, str] = {}
+        for scope, variables in scopesToExport.items():
+            for name in variables:
+                localName = transformName(name, scope, False)
+                globalName = transformName(name, scope, True)
+                exportVariableNames[localName] = globalName
         exportVariables = {}
-        for localName, globalName in self.ast_transformer.currentExportSet:
+        for localName, globalName in exportVariableNames.items():
             exportVariables[globalName] = copy.deepcopy(
                 self.shell.user_ns.get(localName)
             )
+        # print("push export variables", exportVariables)
         self.shell.push(exportVariables)
 
     def post_run_cell(self, result: ExecutionResult):

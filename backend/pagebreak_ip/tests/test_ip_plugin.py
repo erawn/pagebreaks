@@ -13,10 +13,15 @@ import sys
 class Test_IP:
 
     def test_default(self, ip: TerminalInteractiveShell):
+        ip.run_line_magic(
+            "pb_update",
+            r"""{"cellsToScopes":{"1":0},"scopeList":{"0":["d","f"]}}""",
+        )
         ip.run_cell(
             raw_cell="""
 x = 2
 print(2)
-                    """
+                    """,
+            cell_id="1",
         )
-        assert ip.user_ns["pb_1_x"] == 2
+        assert ip.user_ns["pb_0_x"] == 2

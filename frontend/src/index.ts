@@ -48,7 +48,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   ) => {
     console.log('JupyterLab extension Pagebreaks is activated!!!!');
 
-    const notebook = app.shell.currentWidget as NotebookPanel;
+    const notebook = app.shell?.currentWidget as NotebookPanel;
 
     const manager = new schemaManager();
     if (notebook) {
@@ -63,8 +63,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // const factory = registry.getWidgetFactory('Notebook');
       // console.log('found factory', factory?.name);
       // (factory as NotebookWidgetFactory).contentFactory.createCodeCell = lambda;
-      if (app.shell.currentWidget instanceof NotebookPanel) {
-        const notebook = app.shell.currentWidget as NotebookPanel;
+      if (app.shell?.currentWidget instanceof NotebookPanel) {
+        const notebook = app.shell?.currentWidget as NotebookPanel;
         if (notebook) {
           notebook.revealed.then(() => {
             // console.log('notebook revealed');
@@ -214,7 +214,7 @@ function sendSchema(
   schema: string,
   manager: schemaManager
 ) {
-  console.log('send Schema');
+  // console.log('send Schema');
 
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
     code: '%pb_update ' + schema
@@ -231,7 +231,7 @@ function sendSchema(
     // Handle iopub messages
     future.onIOPub = msg => {
       if (msg.header.msg_type !== 'status') {
-        console.log(msg.content);
+        // console.log(msg.content);
       }
     };
     manager.future = future;
@@ -240,10 +240,11 @@ function sendSchema(
   // kernelModel.execute();
 }
 function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
-  const notebook = app.shell.currentWidget as NotebookPanel;
+  const notebook = app.shell?.currentWidget as NotebookPanel;
   const schema = buildNotebookSchema(notebook);
   console.log('schema check');
-  if (!_.isEqual(manager.previousSchema, schema)) {
+  // eslint-disable-next-line no-constant-condition
+  if (!_.isEqual(manager.previousSchema, schema) || true) {
     // console.log('previous schema', manager.previousSchema);
     if (!notebook.sessionContext || !notebook.sessionContext.session?.kernel) {
       return;
@@ -262,7 +263,7 @@ function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
     //   {}
     // );
     const jsonSchema = JSON.stringify(schema);
-    notebook?.content?.widgets.map(cell => {
+    notebook?.content?.widgets?.map(cell => {
       cell.model.setMetadata('pagebreak_schema', jsonSchema);
     });
     sendSchema(notebook, jsonSchema, manager);
