@@ -3,9 +3,6 @@
 
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
-/* .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell:not(.jp-pb-pagebreakCodeCell) {
-    margin-left: initial;
-} */
 
 .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell {
   /* position: relative;
@@ -13,37 +10,34 @@
   margin-left: 50px;
 }
 
-/* .jp-pb-pagebreakCell .jp-CodeMirrorEditor.jp-Editor.jp-InputArea-editor { */
-
-/* } */
-
 .lm-Widget
   .jp-Notebook
   .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
   position: relative;
-  left: 0px;
+
+  /* left: 0px; */
 }
 
 .lm-Widget
   .jp-Notebook
   .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakEven {
-  background: rgba(164, 229, 255, 0.4);
+  background: rgb(164 229 255 / 40%);
 }
 
 .lm-Widget
   .jp-Notebook
   .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakOdd {
-  background: rgba(164, 255, 181, 0.4);
+  background: rgb(164 255 181 / 40%);
 }
 
 .jp-Notebook
   .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell.jp-pb-pagebreakEven {
-  background: rgba(164, 229, 255, 0.63);
+  background: rgb(164 229 255 / 63%);
 }
 
 .jp-Notebook
   .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell.jp-pb-pagebreakOdd {
-  background: rgba(164, 255, 181, 0.621);
+  background: rgb(164 255 181 / 63%);
 }
 
 /* 
