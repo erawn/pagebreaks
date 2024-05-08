@@ -7,10 +7,12 @@ node_modules
 **/typings
 **/schemas
 **/themes
+**/ui-tests
 coverage
 *.map.js
 *.bundle.js
 app/index.template.js
+**/src/__tests__
 
 # jetbrains IDE stuff
 .idea/

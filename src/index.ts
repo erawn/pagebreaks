@@ -149,10 +149,10 @@ function tagNotebookCells(
   notebook: NotebookPanel,
   schema: {
     cellsToScopes:
-    | {
-      [x: string]: number;
-    }
-    | undefined;
+      | {
+          [x: string]: number;
+        }
+      | undefined;
     scopeList: {
       [x: number]: string[];
     };
@@ -164,28 +164,29 @@ function tagNotebookCells(
     return;
   }
 
-  console.log('schema', schema.cellsToScopes)
+  console.log('schema', schema.cellsToScopes);
   notebook?.content?.widgets.forEach((cell, index) => {
     // add styling for code cells
     if (cell.model.type === 'code') {
       cell.addClass('jp-pb-pagebreakCodeCell');
-      if (schema.cellsToScopes && schema.cellsToScopes[cell.model.id] !== undefined) {
-        const scopeNum = schema.cellsToScopes[cell.model.id]
+      if (
+        schema.cellsToScopes &&
+        schema.cellsToScopes[cell.model.id] !== undefined
+      ) {
+        const scopeNum = schema.cellsToScopes[cell.model.id];
 
         if (scopeNum !== undefined) {
-          console.log('scopenum', scopeNum)
+          console.log('scopenum', scopeNum);
           if (scopeNum % 2 === 0) {
             cell.addClass('jp-pb-pagebreakEven');
           } else {
             cell.addClass('jp-pb-pagebreakOdd');
           }
-
         }
       }
     } else {
       cell.removeClass('jp-pb-pagebreakCodeCell');
     }
-
 
     //add styling for pagebreak cells
     if (
@@ -193,19 +194,17 @@ function tagNotebookCells(
       cell.model.sharedModel.getSource().startsWith('pb')
     ) {
       cell.addClass('jp-pb-pagebreakCell');
-      const scope = schema.scopes.find(cell => (cell.index === index))
+      const scope = schema.scopes.find(cell => cell.index === index);
 
       if (scope !== undefined) {
-
         if (scope.pbNum % 2 === 0) {
-          console.log('scopeeven', scope)
-          cell.addClass('jp-pb-pagebreakEven')
+          console.log('scopeeven', scope);
+          cell.addClass('jp-pb-pagebreakEven');
         } else {
-          console.log('scopeodd', scope)
-          cell.addClass('jp-pb-pagebreakOdd')
+          console.log('scopeodd', scope);
+          cell.addClass('jp-pb-pagebreakOdd');
         }
       }
-
     } else {
       cell.removeClass('jp-pb-pagebreakCell');
     }
@@ -291,7 +290,7 @@ function buildNotebookSchema(notebook: NotebookPanel) {
     cellsToScopes: cellsToScopes,
     scopeList: scopeList
       .map(cell => ({
-        [cell.pbNum]: cell.exportedVariables,
+        [cell.pbNum]: cell.exportedVariables
       }))
       .reduce((prev, cur) => ({
         ...prev,
