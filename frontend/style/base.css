@@ -3,22 +3,45 @@
 
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
-.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell:not(.jp-pb-pagebreakCodeCell) {
+/* .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell:not(.jp-pb-pagebreakCodeCell) {
     margin-left: initial;
-}
+} */
 
 .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell {
-    margin-left: 20px;
+    /* position: relative;
+    left: 50px; */
+    margin-left: 50px
 }
 
-.jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell * {
-    margin-left: initial;
+/* .jp-pb-pagebreakCell .jp-CodeMirrorEditor.jp-Editor.jp-InputArea-editor { */
+
+
+/* } */
+
+.lm-Widget .jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
+    position: relative;
+    left: 0px;
 }
 
-.jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
-    background: var(--jp-layout-color4);
+.lm-Widget .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakEven {
+    background: rgba(164, 229, 255, 0.4)
 }
 
-.jp-pb-pagebreakCell .jp-CodeMirrorEditor.jp-Editor.jp-InputArea-editor {
-    margin-left: -30px;
+.lm-Widget .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakOdd {
+    background: rgba(164, 255, 181, 0.4)
 }
+
+.jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell.jp-pb-pagebreakEven {
+    background: rgba(164, 229, 255, 0.63)
+}
+
+.jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell.jp-pb-pagebreakOdd {
+    background: rgba(164, 255, 181, 0.621)
+}
+
+/* 
+@media only screen and (width <=760px) {
+    .jp-InputArea-editor {
+        margin-left: var(--jp-code-padding);
+    }
+} */

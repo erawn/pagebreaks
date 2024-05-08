@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin,
@@ -53,10 +54,38 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const manager = new schemaManager();
     if (notebook) {
       notebook.revealed.then(() => {
+        console.log('top level CALL');
         updatePagebreak(app, manager);
       });
+    } else {
+      // setTimeout(() => {
+      //   console.log('timeout CALL');
+      //   updatePagebreak(app, manager);
+      // }, 1000);
     }
 
+    notebookTracker.currentChanged.connect(() => {
+      if (notebookTracker.currentWidget instanceof NotebookPanel) {
+        const notebook = app.shell?.currentWidget as NotebookPanel;
+        if (notebook) {
+          notebook.content.cellInViewportChanged.connect(() => {
+            if (notebookTracker.currentWidget instanceof NotebookPanel) {
+              const notebook = app.shell?.currentWidget as NotebookPanel;
+              if (notebook) {
+                notebook.revealed.then(() => {
+                  console.log('cellinviewport CALL');
+                  updatePagebreak(app, manager);
+                });
+              }
+            }
+          });
+          notebook.revealed.then(() => {
+            console.log('currentChanged CALL');
+            updatePagebreak(app, manager);
+          });
+        }
+      }
+    });
     notebookTracker.activeCellChanged.connect(() => {
       // console.log('activecell updated!');
       // const registry = app.docRegistry;
@@ -69,6 +98,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           notebook.revealed.then(() => {
             // console.log('notebook revealed');
             // console.log('nb id', notebook.id);
+            console.log('activeCellChanged CALL');
             updatePagebreak(app, manager);
             // console.log('current selection is:');
             // console.log(notebook.content.activeCellIndex);
@@ -76,13 +106,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       }
     });
+    notebookTracker.widgetUpdated.connect(() => {
+      console.log('widget updated');
+    });
+    if (app.shell.currentWidget instanceof NotebookPanel) {
+      console.log('found shell');
+      const notebook = app.shell.currentWidget as NotebookPanel;
+      Promise.all([notebook.sessionContext.ready]).then(async () => {
+        console.log('context CALL');
+        updatePagebreak(app, manager);
+      });
+    }
 
     (app.shell as LabShell).activeChanged.connect(() => {
       if (app.shell.currentWidget instanceof NotebookPanel) {
         const notebook = app.shell.currentWidget as NotebookPanel;
         if (notebook) {
           notebook.revealed.then(() => {
-            // console.log('notebook revealed');
+            console.log('LabShell activeChanged CALL');
             updatePagebreak(app, manager);
             // console.log('current selection is:');
             // console.log(notebook.content.activeCellIndex);
@@ -104,26 +145,75 @@ const plugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-function tagNotebookCells(notebook: NotebookPanel) {
+function tagNotebookCells(
+  notebook: NotebookPanel,
+  schema: {
+    cellsToScopes:
+    | {
+      [x: string]: number;
+    }
+    | undefined;
+    scopeList: {
+      [x: number]: string[];
+    };
+    scopes: PagebreakScopeList;
+  }
+) {
+  // if we have a notebook with no real pagebreak cells, dont change the formatting
+  if (schema.scopeList[0].find(v => v === 'pagebreaks_simulated')) {
+    return;
+  }
+
+  console.log('schema', schema.cellsToScopes)
   notebook?.content?.widgets.forEach((cell, index) => {
+    // add styling for code cells
     if (cell.model.type === 'code') {
       cell.addClass('jp-pb-pagebreakCodeCell');
+      if (schema.cellsToScopes && schema.cellsToScopes[cell.model.id] !== undefined) {
+        const scopeNum = schema.cellsToScopes[cell.model.id]
+
+        if (scopeNum !== undefined) {
+          console.log('scopenum', scopeNum)
+          if (scopeNum % 2 === 0) {
+            cell.addClass('jp-pb-pagebreakEven');
+          } else {
+            cell.addClass('jp-pb-pagebreakOdd');
+          }
+
+        }
+      }
     } else {
       cell.removeClass('jp-pb-pagebreakCodeCell');
     }
 
+
+    //add styling for pagebreak cells
     if (
       cell.model.type === 'raw' &&
       cell.model.sharedModel.getSource().startsWith('pb')
     ) {
       cell.addClass('jp-pb-pagebreakCell');
+      const scope = schema.scopes.find(cell => (cell.index === index))
+
+      if (scope !== undefined) {
+
+        if (scope.pbNum % 2 === 0) {
+          console.log('scopeeven', scope)
+          cell.addClass('jp-pb-pagebreakEven')
+        } else {
+          console.log('scopeodd', scope)
+          cell.addClass('jp-pb-pagebreakOdd')
+        }
+      }
+
     } else {
       cell.removeClass('jp-pb-pagebreakCell');
     }
   });
 }
+
 function buildNotebookSchema(notebook: NotebookPanel) {
-  const schema: PagebreakSchema = [];
+  const cellList: PagebreakSchema = [];
   notebook?.content?.widgets.forEach((cell, index) => {
     if (cell.model.type === 'code') {
       const newCell: IPagebreakCell = {
@@ -132,7 +222,7 @@ function buildNotebookSchema(notebook: NotebookPanel) {
         type: cell.model.type,
         variables: []
       };
-      schema.push(newCell);
+      cellList.push(newCell);
     } else if (cell.model.type === 'raw') {
       const content = cell.model.sharedModel.getSource();
       if (content.startsWith('pb')) {
@@ -144,30 +234,28 @@ function buildNotebookSchema(notebook: NotebookPanel) {
           type: 'pagebreak',
           variables: names
         };
-        schema.push(newCell);
+        cellList.push(newCell);
       }
     }
   });
-  schema.sort((cellA, cellB) => cellA.index - cellB.index);
-  // const pagebreakCells = schema.filter(cell => cell.type === 'pagebreak');
-  // pagebreakCells.sort((cellA, cellB) => cellA.index - cellB.index);
-  // const pagebreakSchema = pagebreakCells.map((cell, index) => ({
-  //   [cell.index]: cell.variables
-  // }));
-  // const currentPagebreak = 0;
-  // for (let index = 0; index < numCells; index++) {
-  //   const cell = schema.find(cell => cell.index === index);
-  // }
+  cellList.sort((cellA, cellB) => cellA.index - cellB.index);
 
-  const scopeList: PagebreakScopeList = schema
+  const scopeList: PagebreakScopeList = cellList
     .filter(cell => cell.type === 'pagebreak')
     .map((cell, index) => ({
       index: cell.index, //index in the list of cells
       pbNum: index, //index in the list of pagebreak scopes
       exportedVariables: cell.variables //variables this scope exports
     }));
+  if (scopeList.length === 0) {
+    scopeList.push({
+      index: cellList.length,
+      pbNum: 0,
+      exportedVariables: ['pagebreaks_simulated']
+    });
+  }
   //Builds an Object with structure [cell.id]: matching pagebreak scope
-  const cellsToScopes = schema
+  const cellsToScopes = cellList
     .filter(cell => cell.type === 'code')
     .map(cell => {
       const currentScope = scopeList
@@ -182,9 +270,11 @@ function buildNotebookSchema(notebook: NotebookPanel) {
           return {
             [cell.id]: lastScope.pbNum + 1
           };
+        } else if (scopeList.length === 0) {
+          //if we have a nb without any pagebreaks
+          return { [cell.id]: 0 };
         } else {
           console.error("Can't find matching scope for cell", cell);
-          return {};
         }
       } else {
         return {
@@ -201,12 +291,13 @@ function buildNotebookSchema(notebook: NotebookPanel) {
     cellsToScopes: cellsToScopes,
     scopeList: scopeList
       .map(cell => ({
-        [cell.pbNum]: cell.exportedVariables
+        [cell.pbNum]: cell.exportedVariables,
       }))
       .reduce((prev, cur) => ({
         ...prev,
         ...cur
-      }))
+      })),
+    scopes: scopeList
   };
 }
 function sendSchema(
@@ -217,7 +308,9 @@ function sendSchema(
   // console.log('send Schema');
 
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
-    code: '%pb_update ' + schema
+    code: '%pb_update ' + schema,
+    silent: true,
+    store_history: false
   };
   // const stringSchema = { pagebreakSchema: schema };
   // console.log('schema string:', JSON.stringify(stringSchema));
@@ -227,7 +320,7 @@ function sendSchema(
   }
   if (manager.future === null || manager.future.isDisposed) {
     console.log('sending content', schema);
-    const future = kernel.requestExecute(content, true, {});
+    const future = kernel.requestExecute(content);
     // Handle iopub messages
     future.onIOPub = msg => {
       if (msg.header.msg_type !== 'status') {
@@ -243,6 +336,7 @@ function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
   const notebook = app.shell?.currentWidget as NotebookPanel;
   const schema = buildNotebookSchema(notebook);
   console.log('schema check');
+
   // eslint-disable-next-line no-constant-condition
   if (!_.isEqual(manager.previousSchema, schema) || true) {
     // console.log('previous schema', manager.previousSchema);
@@ -250,22 +344,11 @@ function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
       return;
     }
     manager.previousSchema = schema;
-    tagNotebookCells(notebook);
-    // const jsonSchema: any = schema.map(
-    //   (value, index) => ({
-    //     [value.id]: {
-    //       index: value.index,
-    //       id: value.id,
-    //       type: value.type,
-    //       variables: value.variables ? value.variables.toLocaleString() : ''
-    //     }
-    //   }),
-    //   {}
-    // );
+    tagNotebookCells(notebook, schema);
     const jsonSchema = JSON.stringify(schema);
-    notebook?.content?.widgets?.map(cell => {
-      cell.model.setMetadata('pagebreak_schema', jsonSchema);
-    });
+    // notebook?.content?.widgets?.map(cell => {
+    //   cell.model.setMetadata('pagebreak_schema', jsonSchema);
+    // });
     sendSchema(notebook, jsonSchema, manager);
     // console.log('schema changed', jsonSchema);
   }
