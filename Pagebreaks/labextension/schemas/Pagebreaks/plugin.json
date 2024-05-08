@@ -1,0 +1,15 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "Pagebreaks",
+  "description": "Pagebreaks settings.",
+  "type": "object",
+  "properties": {
+    "flag": {
+      "type": "boolean",
+      "title": "Simple flag",
+      "description": "This is an example of a boolean setting.",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

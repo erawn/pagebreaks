@@ -2,11 +2,14 @@ import ast
 from dataclasses import dataclass
 import copy
 from typing import List, Tuple, Set, Dict, Type
-from IPython.core.error import InputRejected
+from IPython.core.error import InputRejected, UsageError
 from IPython.testing.globalipapp import start_ipython
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.core.interactiveshell import ExecutionResult, ExecutionInfo
 from pagebreak_magic import pagebreak_magics
+from collections import Counter
+import warnings
+import itertools
 
 DEBUG = True
 
@@ -158,11 +161,21 @@ class DefinitionsFinder(baseASTTransform):
         return node
 
 
-class PagebreakError(RuntimeError):
+class PagebreakError(SyntaxError):
     def __init__(self, message, errors):
+        self.message = message
         super().__init__(message)
+        super().with_traceback(None)
         self.errors = errors
-        print(errors)
+
+        # print("errors", errors)
+        # print("message", message)
+
+    def __str__(self) -> str:
+        return self.message
+
+    def __repr__(self) -> str:
+        return self.message
 
 
 class PagebreaksASTTransformer(baseASTTransform):
@@ -190,6 +203,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
+        print("transforming ast")
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
@@ -201,36 +215,41 @@ class PagebreaksASTTransformer(baseASTTransform):
         # print(dump)
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
-        print("saved variables", savedVariables)
+        self.userVariables.update({data.currentContext: savedVariables})
+
+        print("saved variables", self.userVariables)
         data.userDefinedVariables.update(savedVariables)
         self.generic_visit(node, data)
         return node
 
     def visit_Name(self, node, data: astWalkData):
+        print("visit name export variables", data.exportedVariables)
         # check if variable is exported from another context
-        for context in data.exportedVariables.keys():
+        for context, exportedVariables in data.exportedVariables.items():
             if (
                 context != data.currentContext
-                and node.id in data.exportedVariables.get(context, set())
+                and node.id in exportedVariables
                 and context
                 < data.currentContext  # only export variables from earlier contexts
             ):
-                print("here")
-                # if DEBUG:
-                #     print(
-                #         "changing name ["
-                #         + node.id
-                #         + "] to ["
-                #         + self.transformName(node.id, context)
-                #         + "]"
-                #     )
+                if DEBUG:
+                    print(
+                        "changing name ["
+                        + node.id
+                        + "] to ["
+                        + transformName(node.id, context)
+                        + "]"
+                    )
                 if isinstance(
                     node.ctx, ast.Store
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
                     raise InputRejected(
                         """PagebreaksError: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
-                        + """' elsewhere in the notebook"""
+                        + """' elsewhere in the notebook""",
+                        stacklevel=2,
+                    ).with_traceback(
+                        None
                     )  # the only kind of error we can raise, otherwise IPython will disable the transformer
                 return ast.Name(
                     id=transformName(node.id, context, export=True), ctx=node.ctx
@@ -318,37 +337,54 @@ class Pagebreak(object):
         self.shell.ast_transformers.append(self.ast_transformer)
         self.current_context: int = 0
         self.magics = None
-        self.exportedVariables: dict[int, set[str]] = {}
+        # self.exportedVariables: dict[int, set[str]] = {}
+        self.exportVariableNames: dict[str, str] = {}
 
     def set_current_context(self, newcontext: int):
-        print("setting current context to:", newcontext)
+        # print("setting current context to:", newcontext)
         self.current_context = newcontext
         self.ast_transformer.currentContext = newcontext
 
     def pre_run_cell(self, info: ExecutionInfo):
         # print("pre run")
-        # temporary: change contexts with simple pragma
-        # first_line = info.raw_cell.partition("\n")[0]
-        # if first_line.startswith("#changeContexts"):
-        #     arg = first_line.partition(" ")[2]
-        #     if DEBUG:
-        #         print("Setting context to :[" + arg + "]")
-        #     self.set_current_context(int(arg))
-        # self.shell.meta["pagebreak"] = "this is a test"
         # print(info)
         # set the current context
         if self.magics is None:
-            if self.magics.schema is None:
-                print("magics error")
-                return
+            print("magics error")
+            return
+        if self.magics.schema is None:
+            print("schema error")
+            return
 
+        # grab our data structure from the front end
         schema: dict = self.magics.schema
-
         cellsToScopes: dict[str, int] = schema.get("cellsToScopes", {})
         scopeList: dict[int, set[str]] = {
-            int(key): set(val) for (key, val) in schema.get("scopeList", {}).items()
+            int(key): set(filter(None, val))
+            for (key, val) in schema.get("scopeList", {}).items()
         }
-        currentContext: int = cellsToScopes[info.cell_id]
+
+        # check for duplicates
+        exportedNamesListofLists = [
+            list(eachSet) for (key, eachSet) in scopeList.items()
+        ]
+        exportedNames = list(itertools.chain.from_iterable(exportedNamesListofLists))
+        duplicateNames = [
+            val for val, count in Counter(exportedNames).items() if count > 1
+        ]
+
+        if len(duplicateNames) > 0:
+            # print("duplicateNames", duplicateNames)
+            warnings.warn(
+                "(Pagebreaks) Duplicate Exported Variables: '"
+                + " ,".join(duplicateNames)
+                + "', skipping later exports"
+            )
+
+        # check if our cell_id is in the scope
+        currentContext: int = cellsToScopes.get(info.cell_id, -1)
+        if currentContext == -1:
+            raise PagebreakError("Couldn't find schema").with_traceback(None)
         self.ast_transformer.setStoredData(
             astWalkData(
                 currentContext=currentContext,
@@ -356,7 +392,7 @@ class Pagebreak(object):
                 exportedVariables=scopeList,
             )
         )
-        print("setting data:", self.ast_transformer.getStoredData())
+        # print("setting data:", self.ast_transformer.getStoredData())
         self.set_current_context(cellsToScopes[info.cell_id])
         # cache exported variables
 
@@ -371,34 +407,50 @@ class Pagebreak(object):
                 localName = transformName(name, scope, False)
                 globalName = transformName(name, scope, True)
                 exportVariableNames[localName] = globalName
+        print("exportvariablenames", exportVariableNames)
         exportVariables = {}
         for localName, globalName in exportVariableNames.items():
-            exportVariables[globalName] = copy.deepcopy(
-                self.shell.user_ns.get(localName)
-            )
-        # print("push export variables", exportVariables)
+            localValue = self.shell.user_ns.get(localName, None)
+            if localValue is not None:
+                exportVariables[globalName] = copy.deepcopy(localValue)
+        print("push export variables", exportVariables)
         self.shell.push(exportVariables)
+        self.exportVariableNames = exportVariableNames
 
     def post_run_cell(self, result: ExecutionResult):
         # print("post run")
         if result.success:
-            currentExportSet = self.ast_transformer.currentExportSet
             namesToDrop = []
-            for localName, globalName in currentExportSet:
+            for localName, globalName in self.exportVariableNames.items():
                 if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
                     globalName
                 ):
-                    # revert state here
+                    print(localName, globalName)
                     namesToDrop.append(globalName)
 
-            if len(namesToDrop) > 0:
-                self.shell.drop_by_id(namesToDrop)
-                raise PagebreakError(
-                    "Attempted to Overwrite Read-Only Exported Variables: '"
-                    + ", ".join(namesToDrop)
-                    + "'",
-                    "",
-                )
+            # currentExportSet = self.ast_transformer.currentExportSet
+
+            # for localName, globalName in currentExportSet:
+            #     if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
+            #         globalName
+            #     ):
+            #         # revert state here
+            #         namesToDrop.append(globalName)
+            try:
+                if len(namesToDrop) > 0:
+                    for name in namesToDrop:
+                        self.shell.del_var(name)
+                    userFacingNames = [
+                        name.removeprefix("pb_export_") for name in namesToDrop
+                    ]
+                    raise PagebreakError(
+                        "Attempted to Overwrite Read-Only Exported Variables: '"
+                        + ", ".join(userFacingNames)
+                        + "'",
+                        "",
+                    ).with_traceback(None)
+            except:
+                self.shell.showtraceback()
 
     def load_metadata(self):
         return
