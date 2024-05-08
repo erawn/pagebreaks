@@ -12,6 +12,9 @@ concurrency:
 jobs:
   check_release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +23,6 @@ jobs:
       - name: Check Release
         uses: jupyter-server/jupyter_releaser/.github/actions/check-release@v2
         with:
-
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Distributions
