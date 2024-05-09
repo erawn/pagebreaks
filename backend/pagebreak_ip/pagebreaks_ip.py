@@ -1,17 +1,20 @@
 import ast
-from dataclasses import dataclass
 import copy
-from typing import List, Tuple, Set, Dict, Type
-from IPython.core.error import InputRejected, UsageError
-from IPython.testing.globalipapp import start_ipython
-from IPython.terminal.interactiveshell import TerminalInteractiveShell
-from IPython.core.interactiveshell import ExecutionResult, ExecutionInfo
-from pagebreak_magic import pagebreak_magics
-from collections import Counter
-import warnings
 import itertools
+import logging
+import sys
+import warnings
+from collections import Counter
+from dataclasses import dataclass
+from typing import Dict, List, Set, Tuple, Type
 
-DEBUG = True
+from IPython.core.error import InputRejected, UsageError
+from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
+from IPython.terminal.interactiveshell import TerminalInteractiveShell
+from IPython.testing.globalipapp import start_ipython
+from pagebreak_magic import pagebreak_magics
+
+logger = logging.getLogger(__name__).addHandler(logging.StreamHandler(sys.stdout))
 
 
 # class NameAdder(ast.NodeTransformer):
@@ -53,7 +56,7 @@ class baseASTTransform(ast.NodeTransformer):
             data = self.storedData
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        # print("visit data:", data)
+        # logging.info("visit data:", data)
         return visitor(node, copy.deepcopy(data))
 
     def generic_visit(self, node, data):
@@ -140,13 +143,13 @@ class DefinitionsFinder(baseASTTransform):
     def visit_Global(self, node: ast.Global, data=None):
         for tar in node.names:
             self.globalKeywords.add(tar)
-        print("added globals", self.globalKeywords)
+        logging.info("added globals" + str(self.globalKeywords))
         return node
 
     def visit_Nonlocal(self, node: ast.Nonlocal, data=None):
         for tar in node.names:
             self.nonlocalKeywords.add(tar)
-        print("added nonlocals", self.nonlocalKeywords)
+        logging.info("added nonlocals" + str(self.nonlocalKeywords))
         return node
 
     def getDefinitionsAtNode(self, node) -> set[str]:
@@ -162,14 +165,11 @@ class DefinitionsFinder(baseASTTransform):
 
 
 class PagebreakError(SyntaxError):
-    def __init__(self, message, errors):
+    def __init__(self, message, errors=""):
         self.message = message
         super().__init__(message)
         super().with_traceback(None)
         self.errors = errors
-
-        # print("errors", errors)
-        # print("message", message)
 
     def __str__(self) -> str:
         return self.message
@@ -199,31 +199,28 @@ class PagebreaksASTTransformer(baseASTTransform):
     # all the global definitions with a separate transformer, "variableFinder"
     def visit_Module(self, node: ast.Module, data: astWalkData):
         if data is None:
-            print(
+            logging.info(
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
-        print("transforming ast")
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
-        # if DEBUG:
-        #     if (len(trackedNames)) > 0:
-        #         print("New Definitions Found:")
-        #         print(trackedNames)
-        # dump = ast.dump(node, indent=4)
-        # print(dump)
+        logging.info("New Definitions Found:" + str(trackedNames))
+        logging.info(trackedNames)
+        dump = ast.dump(node, indent=4)
+        logging.info(dump)
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
         self.userVariables.update({data.currentContext: savedVariables})
 
-        print("saved variables", self.userVariables)
+        logging.info("saved variables" + str(self.userVariables))
         data.userDefinedVariables.update(savedVariables)
         self.generic_visit(node, data)
         return node
 
     def visit_Name(self, node, data: astWalkData):
-        print("visit name export variables", data.exportedVariables)
+        logging.info("visit name export variables" + str(data.exportedVariables))
         # check if variable is exported from another context
         for context, exportedVariables in data.exportedVariables.items():
             if (
@@ -232,22 +229,20 @@ class PagebreaksASTTransformer(baseASTTransform):
                 and context
                 < data.currentContext  # only export variables from earlier contexts
             ):
-                if DEBUG:
-                    print(
-                        "changing name ["
-                        + node.id
-                        + "] to ["
-                        + transformName(node.id, context)
-                        + "]"
-                    )
+                logging.info(
+                    "changing name ["
+                    + node.id
+                    + "] to ["
+                    + transformName(node.id, context)
+                    + "]"
+                )
                 if isinstance(
                     node.ctx, ast.Store
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
                     raise InputRejected(
                         """PagebreaksError: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
-                        + """' elsewhere in the notebook""",
-                        stacklevel=2,
+                        + """' elsewhere in the notebook"""
                     ).with_traceback(
                         None
                     )  # the only kind of error we can raise, otherwise IPython will disable the transformer
@@ -255,14 +250,13 @@ class PagebreaksASTTransformer(baseASTTransform):
                     id=transformName(node.id, context, export=True), ctx=node.ctx
                 )
         if node.id in data.userDefinedVariables:
-            if DEBUG:
-                print(
-                    "changing name ["
-                    + node.id
-                    + "] to ["
-                    + transformName(node.id, data.currentContext)
-                    + "]"
-                )
+            logging.info(
+                "changing name ["
+                + node.id
+                + "] to ["
+                + transformName(node.id, data.currentContext)
+                + "]"
+            )
             return ast.Name(
                 id=transformName(node.id, data.currentContext), ctx=node.ctx
             )
@@ -295,8 +289,9 @@ class PagebreaksASTTransformer(baseASTTransform):
         defFinder = DefinitionsFinder()
         newDefinitions = defFinder.getDefinitionsAtNode(node)
         # check if any defs are overwriting exported variables
-        if DEBUG:
-            print("found defs at:", node, ", with definitions: ", newDefinitions)
+        logging.info(
+            "HandleNewBlock:" + str(node) + ", with definitions: " + str(newDefinitions)
+        )
 
         # we can just remove any variable names which are redefined because python considers any definition local to a block by default, so we need a special case for the "global" and "nonlocal" keywords, but otherwise if a definition occurs within a block, its assumed other references to that varible in that block reference the local var, so a global variable can't be used and a local variable of the same name cant be defined in the same python block, regardless of where that definition is in the block. For example, this:
         # a = 1
@@ -340,20 +335,15 @@ class Pagebreak(object):
         # self.exportedVariables: dict[int, set[str]] = {}
         self.exportVariableNames: dict[str, str] = {}
 
-    def set_current_context(self, newcontext: int):
-        # print("setting current context to:", newcontext)
-        self.current_context = newcontext
-        self.ast_transformer.currentContext = newcontext
-
     def pre_run_cell(self, info: ExecutionInfo):
-        # print("pre run")
-        # print(info)
+        # logging.info("pre run")
+        # logging.info(info)
         # set the current context
         if self.magics is None:
-            print("magics error")
+            logging.info("magics error")
             return
         if self.magics.schema is None:
-            print("schema error")
+            logging.info("schema error")
             return
 
         # grab our data structure from the front end
@@ -374,7 +364,7 @@ class Pagebreak(object):
         ]
 
         if len(duplicateNames) > 0:
-            # print("duplicateNames", duplicateNames)
+            # logging.info("duplicateNames", duplicateNames)
             warnings.warn(
                 "(Pagebreaks) Duplicate Exported Variables: '"
                 + " ,".join(duplicateNames)
@@ -382,9 +372,21 @@ class Pagebreak(object):
             )
 
         # check if our cell_id is in the scope
-        currentContext: int = cellsToScopes.get(info.cell_id, -1)
+        currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
+        # print(
+        #     "cells",
+        #     cellsToScopes,
+        #     "curcontext",
+        #     currentContext,
+        #     "info",
+        #     info,
+        #     "index",
+        #     cellsToScopes["1"],
+        # )
         if currentContext == -1:
             raise PagebreakError("Couldn't find schema").with_traceback(None)
+
+        self.current_context = currentContext
         self.ast_transformer.setStoredData(
             astWalkData(
                 currentContext=currentContext,
@@ -392,8 +394,8 @@ class Pagebreak(object):
                 exportedVariables=scopeList,
             )
         )
-        # print("setting data:", self.ast_transformer.getStoredData())
-        self.set_current_context(cellsToScopes[info.cell_id])
+        # logging.info("setting data:", self.ast_transformer.getStoredData())
+
         # cache exported variables
 
         scopesToExport: dict[int, set[str]] = {
@@ -407,25 +409,25 @@ class Pagebreak(object):
                 localName = transformName(name, scope, False)
                 globalName = transformName(name, scope, True)
                 exportVariableNames[localName] = globalName
-        print("exportvariablenames", exportVariableNames)
+        logging.info("exportvariablenames" + str(exportVariableNames))
         exportVariables = {}
         for localName, globalName in exportVariableNames.items():
             localValue = self.shell.user_ns.get(localName, None)
             if localValue is not None:
                 exportVariables[globalName] = copy.deepcopy(localValue)
-        print("push export variables", exportVariables)
+        logging.info("push export variables" + str(exportVariables))
         self.shell.push(exportVariables)
         self.exportVariableNames = exportVariableNames
 
     def post_run_cell(self, result: ExecutionResult):
-        # print("post run")
+        # logging.info("post run")
         if result.success:
             namesToDrop = []
             for localName, globalName in self.exportVariableNames.items():
                 if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
                     globalName
                 ):
-                    print(localName, globalName)
+                    logging.info(localName + globalName)
                     namesToDrop.append(globalName)
 
             # currentExportSet = self.ast_transformer.currentExportSet
@@ -464,18 +466,28 @@ _pb_magics: pagebreak_magics | None = None
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
-    _pb_magics = pagebreak_magics(ip)
+    logging.basicConfig(filename="pagebreaks.log", level=logging.INFO)
+    global _pb
     _pb = Pagebreak(ip)
-    _pb.set_magics(_pb_magics)
+    ip.run_line_magic("lsmagic", "")
+    existing_pb_magic = ip.find_magic("%pb_update", "line")
+    if existing_pb_magic is None:
+        _pb_magics = pagebreak_magics(ip)
+        ip.register_magics(_pb_magics)
+        _pb.set_magics(_pb_magics)
+    else:
+        _pb.set_magics(existing_pb_magic)
     ip.events.register("pre_run_cell", _pb.pre_run_cell)
     ip.events.register("post_run_cell", _pb.post_run_cell)
-    ip.register_magics(_pb_magics)
 
 
 def unload_ipython_extension(ip: TerminalInteractiveShell):
     if _pb is not None:
+        ip.ast_transformers.remove(_pb.ast_transformer)
         ip.events.unregister("pre_run_cell", _pb.pre_run_cell)  # type: ignore
         ip.events.unregister("post_run_cell", _pb.post_run_cell)  # type: ignore
+    else:
+        print("extension is NULL")
 
 
 # try:

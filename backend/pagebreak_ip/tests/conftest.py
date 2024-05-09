@@ -1,6 +1,6 @@
 import pytest
-from IPython.testing.globalipapp import start_ipython
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
+from IPython.testing.globalipapp import start_ipython
 
 
 @pytest.fixture(scope="session")

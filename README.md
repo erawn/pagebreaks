@@ -41,9 +41,15 @@ The `jlpm` command is JupyterLab's pinned version of
 pip install -e "."
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
+
+jlpm # install packages
+
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
+
+If issues, delete: ~/miniforge3/envs/notebook/share/jupyter/labextensions/Pagebreaks/
+
 
 You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
 

@@ -1,12 +1,14 @@
 from __future__ import print_function
+
+import json
+
 from IPython.core.magic import (
     Magics,
-    magics_class,
-    line_magic,
     cell_magic,
     line_cell_magic,
+    line_magic,
+    magics_class,
 )
-import json
 
 
 @magics_class
@@ -23,18 +25,13 @@ class pagebreak_magics(Magics):
 
     @cell_magic
     def pagebreak(self, line, cell):
-        print("defined pagebreak", line, cell)
+        # print("defined pagebreak", line, cell)
         return line, cell
 
-    @line_cell_magic
-    def pb_update(self, line, cell=None):
+    @line_magic
+    def pb_update(self, line):
         "Magic that works both as %lcmagic and as %%lcmagic"
         self.schema = json.loads(line)
-        if cell is None:
-            print("Called pb update line magic")
-            print(line)
-            return line
-        else:
-            print("Called pb update cell magic")
-            print(line, "cell:", cell)
-            return line, cell
+        # print("Called pb update line magic")
+        # print(line)
+        return line
