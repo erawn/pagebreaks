@@ -73,10 +73,13 @@ function buildNotebookSchema(notebook: NotebookPanel) {
         };
       }
     })
-    .reduce((prev, current) => ({
-      ...prev,
-      ...current
-    }));
+    .reduce(
+      (prev, current) => ({
+        ...prev,
+        ...current
+      }),
+      {}
+    );
 
   return {
     cellsToScopes: cellsToScopes,
@@ -99,7 +102,7 @@ function sendSchema(
   // console.log('send Schema');
 
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
-    code: '%pb_update ' + schema,
+    code: '%%pb_update \n' + schema,
     silent: true,
     store_history: false
   };
@@ -109,12 +112,15 @@ function sendSchema(
   if (!kernel) {
     throw new Error('Session has no kernel.');
   }
+
   if (manager.future === null || manager.future.isDisposed) {
+    console.log('sending Schema', schema);
     const future = kernel.requestExecute(content);
     // Handle iopub messages
     future.onIOPub = msg => {
-      if (msg.header.msg_type !== 'status') {
-        // console.log(msg.content);
+      // eslint-disable-next-line no-constant-condition
+      if (msg.header.msg_type !== 'status' || true) {
+        console.log(msg.content);
       }
     };
     manager.future = future;

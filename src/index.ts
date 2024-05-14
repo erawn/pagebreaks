@@ -32,11 +32,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
     app.formatChanged.connect(()=>{
       console.log('Format CHANGED')
     })
-    const interval = setInterval(()=>{
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setInterval(()=>{
       console.log('interval CALL', app.shell.currentWidget?.isVisible);
       if(app.shell.currentWidget?.isVisible){
         updatePagebreak(app, manager);
-        clearInterval(interval)
       }else{
         app.shell.update();
         updatePagebreak(app, manager);
@@ -160,14 +160,15 @@ function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
   const schema = buildNotebookSchema(notebook);
   console.log('schema check');
   tagNotebookCells(notebook, schema);
+  const now = new Date()
   // eslint-disable-next-line no-constant-condition
-  if (!_.isEqual(manager.previousSchema, schema) || true) {
+  if (!_.isEqual(manager.previousSchema, schema) || (now.getTime()-manager.lastSend.getTime() > 300)) {
     // console.log('previous schema', manager.previousSchema);
-    if (!notebook.sessionContext || !notebook.sessionContext.session?.kernel) {
+    if (!notebook?.sessionContext || !notebook?.sessionContext?.session?.kernel) {
       return;
     }
+    manager.lastSend = now
     manager.previousSchema = schema;
-    console.log('Sending Schema', schema)
     const jsonSchema = JSON.stringify(schema);
     sendSchema(notebook, jsonSchema, manager);
     app.shell.currentWidget?.update()

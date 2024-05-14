@@ -123,3 +123,6 @@ dmypy.json
 
 # Yarn cache
 .yarn/
+
+
+ backend/pagebreak_ip/*.ipynb

@@ -1,12 +1,16 @@
 import ast
 import copy
+import inspect
 import itertools
 import logging
+import logging.handlers
+import re
 import sys
+import typing
 import warnings
 from collections import Counter
 from dataclasses import dataclass
-from typing import Dict, List, Set, Tuple, Type
+from typing import Any, Dict, List, Set, Tuple, Type
 
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
@@ -180,7 +184,8 @@ class PagebreakError(SyntaxError):
 
 class PagebreaksASTTransformer(baseASTTransform):
 
-    def __init__(self):
+    def __init__(self, shell=None):
+        self.shell: TerminalInteractiveShell | None = shell
         super().__init__()
         self.userVariables: dict[int, set[str]] = (
             {}
@@ -198,18 +203,27 @@ class PagebreaksASTTransformer(baseASTTransform):
     # always called first as the top level AST node, we're going to walk the tree and find
     # all the global definitions with a separate transformer, "variableFinder"
     def visit_Module(self, node: ast.Module, data: astWalkData):
+        # if not hasattr(node, "_attributes"):
+        #     node._attributes = ("",)
         if data is None:
             logging.info(
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
+        # if node is None:
+        #     print("node is none")
+        #     logging.info("Node is none" + str(data))
+        #     return node
+        dump = ast.dump(node, indent=4)
+        if "pb_update" in dump:
+            return node
+        logging.info(dump)
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
         logging.info("New Definitions Found:" + str(trackedNames))
         logging.info(trackedNames)
-        dump = ast.dump(node, indent=4)
-        logging.info(dump)
+
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
         self.userVariables.update({data.currentContext: savedVariables})
@@ -239,13 +253,25 @@ class PagebreaksASTTransformer(baseASTTransform):
                 if isinstance(
                     node.ctx, ast.Store
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
-                    raise InputRejected(
+
+                    message = (
                         """PagebreaksError: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
                         + """' elsewhere in the notebook"""
-                    ).with_traceback(
-                        None
-                    )  # the only kind of error we can raise, otherwise IPython will disable the transformer
+                    )
+                    if self.shell is None:
+                        raise InputRejected(message)
+
+                    shell = typing.cast(TerminalInteractiveShell, self.shell)
+                    er = InputRejected(message).with_traceback(None)
+                    setattr(
+                        er,
+                        "_render_traceback_",
+                        lambda: shell.InteractiveTB.get_exception_only(
+                            type(er), message
+                        ),
+                    )
+                    raise er
                 return ast.Name(
                     id=transformName(node.id, context, export=True), ctx=node.ctx
                 )
@@ -328,10 +354,11 @@ class Pagebreak(object):
 
     def __init__(self, ip: TerminalInteractiveShell):
         self.shell = ip
-        self.ast_transformer = PagebreaksASTTransformer()
+        self.ast_transformer = PagebreaksASTTransformer(ip)
         self.shell.ast_transformers.append(self.ast_transformer)
         self.current_context: int = 0
         self.magics = None
+        self.cache: dict[str, Any] = {}
         # self.exportedVariables: dict[int, set[str]] = {}
         self.exportVariableNames: dict[str, str] = {}
 
@@ -345,7 +372,6 @@ class Pagebreak(object):
         if self.magics.schema is None:
             logging.info("schema error")
             return
-
         # grab our data structure from the front end
         schema: dict = self.magics.schema
         cellsToScopes: dict[str, int] = schema.get("cellsToScopes", {})
@@ -373,15 +399,11 @@ class Pagebreak(object):
 
         # check if our cell_id is in the scope
         currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
-        # print(
-        #     "cells",
-        #     cellsToScopes,
+        # logging.info(
         #     "curcontext",
         #     currentContext,
-        #     "info",
-        #     info,
-        #     "index",
-        #     cellsToScopes["1"],
+        #     "scopelist",
+        #     scopeList,
         # )
         if currentContext == -1:
             raise PagebreakError("Couldn't find schema").with_traceback(None)
@@ -394,15 +416,23 @@ class Pagebreak(object):
                 exportedVariables=scopeList,
             )
         )
-        # logging.info("setting data:", self.ast_transformer.getStoredData())
+        logging.info("setting data:" + str(scopeList) + str(currentContext))
 
         # cache exported variables
-
+        cache = {
+            name: value
+            for (name, value) in self.shell.user_ns.items()
+            if name.startswith("pb_" + str(currentContext) + "_")
+        }
+        self.cache = cache
+        ##find variables we want to export
         scopesToExport: dict[int, set[str]] = {
             context: val
             for (context, val) in scopeList.items()
             if context < currentContext
         }
+
+        ## Format Variable Names
         exportVariableNames: dict[str, str] = {}
         for scope, variables in scopesToExport.items():
             for name in variables:
@@ -410,6 +440,20 @@ class Pagebreak(object):
                 globalName = transformName(name, scope, True)
                 exportVariableNames[localName] = globalName
         logging.info("exportvariablenames" + str(exportVariableNames))
+
+        ## Clear Exported Variables if we aren't actively exporting them (they were removed from the list)
+        globalNamesToDelete = [
+            name
+            for name in self.shell.user_ns
+            if name.startswith("pb_export_")
+            & (name not in exportVariableNames.values())
+        ]
+        if len(globalNamesToDelete) > 0:
+            logging.info("deleting" + str(globalNamesToDelete))
+            for name in globalNamesToDelete:
+                self.shell.user_ns.pop(name, None)
+
+        ##Make Global Copies of Local Vars
         exportVariables = {}
         for localName, globalName in exportVariableNames.items():
             localValue = self.shell.user_ns.get(localName, None)
@@ -421,36 +465,51 @@ class Pagebreak(object):
 
     def post_run_cell(self, result: ExecutionResult):
         # logging.info("post run")
-        if result.success:
-            namesToDrop = []
-            for localName, globalName in self.exportVariableNames.items():
-                if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
-                    globalName
-                ):
-                    logging.info(localName + globalName)
-                    namesToDrop.append(globalName)
+        if not result.success:
+            return
 
-            # currentExportSet = self.ast_transformer.currentExportSet
+        namesToDrop = []
+        for localName, globalName in self.exportVariableNames.items():
+            localVar = self.shell.user_ns.get(localName)
+            globalVar = self.shell.user_ns.get(globalName)
+            if localVar is not None:
+                if hasattr(localVar, "__dict__"):
+                    if type(localVar) != type(globalVar):
+                        namesToDrop.append(globalName)
+                    elif hasattr(globalVar, "__dict__"):
+                        if localVar.__dict__ != globalVar.__dict__:
+                            namesToDrop.append(globalName)
+                else:
+                    if localVar != globalVar:
+                        logging.info("found unequal variable" + localName + globalName)
+                        namesToDrop.append(globalName)
 
-            # for localName, globalName in currentExportSet:
-            #     if self.shell.user_ns.get(localName) != self.shell.user_ns.get(
-            #         globalName
-            #     ):
-            #         # revert state here
-            #         namesToDrop.append(globalName)
+        if len(namesToDrop) > 0:
+            for name in namesToDrop:
+                self.shell.user_ns.pop(name)
+
+            ## reset local variables
+            localVariableNames = [
+                name
+                for name in self.shell.user_ns.keys()
+                if name.startswith("pb_" + str(self.current_context) + "_")
+            ]
+            for name in localVariableNames:
+                self.shell.user_ns.pop(name)
+
+            self.shell.user_ns.update(self.cache)
+
+            ## Throw Pretty Error Message
             try:
-                if len(namesToDrop) > 0:
-                    for name in namesToDrop:
-                        self.shell.del_var(name)
-                    userFacingNames = [
-                        name.removeprefix("pb_export_") for name in namesToDrop
-                    ]
-                    raise PagebreakError(
-                        "Attempted to Overwrite Read-Only Exported Variables: '"
-                        + ", ".join(userFacingNames)
-                        + "'",
-                        "",
-                    ).with_traceback(None)
+                userFacingNames = [
+                    name.removeprefix("pb_export_") for name in namesToDrop
+                ]
+                raise PagebreakError(
+                    "Attempted to Overwrite Read-Only Exported Variables: '"
+                    + ", ".join(userFacingNames)
+                    + "'",
+                    "",
+                ).with_traceback(None)
             except:
                 self.shell.showtraceback()
 
@@ -482,10 +541,12 @@ def load_ipython_extension(ip: TerminalInteractiveShell):
 
 
 def unload_ipython_extension(ip: TerminalInteractiveShell):
-    if _pb is not None:
+    global _pb
+    if _pb:
+        _pb = typing.cast(Pagebreak, _pb)
         ip.ast_transformers.remove(_pb.ast_transformer)
-        ip.events.unregister("pre_run_cell", _pb.pre_run_cell)  # type: ignore
-        ip.events.unregister("post_run_cell", _pb.post_run_cell)  # type: ignore
+        ip.events.unregister("pre_run_cell", _pb.pre_run_cell)
+        ip.events.unregister("post_run_cell", _pb.post_run_cell)
     else:
         print("extension is NULL")
 

@@ -102,7 +102,7 @@
     "outputDir": "Pagebreaks/labextension",
     "schemaDir": "schema",
     "_build": {
-      "load": "static/remoteEntry.fee4d80c06fa9fe98346.js",
+      "load": "static/remoteEntry.9109d3d2a57535d91792.js",
       "extension": "./extension",
       "style": "./style"
     }
