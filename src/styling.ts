@@ -26,49 +26,51 @@ function tagNotebookCells(
   // });
 
   notebook?.content?.widgets.forEach((cell, index) => {
-    // add styling for code cells
-    if (cell.model.type === 'code') {
-      cell.addClass('jp-pb-pagebreakCodeCell');
-      if (
-        schema.cellsToScopes &&
-        schema.cellsToScopes[cell.model.id] !== undefined
-      ) {
-        const scopeNum = schema.cellsToScopes[cell.model.id];
-        if (scopeNum !== undefined) {
-          conditionalClass(
-            cell,
-            'jp-pb-pagebreakEven',
-            'jp-pb-pagebreakOdd',
-            scopeNum % 2 === 0
-          );
-        }
+    let scopeNum = -1;
+    switch (cell.model.type) {
+      case 'markdown':
+      case 'code': {
+        scopeNum = schema?.cellsToScopes?.[cell.model.id] ?? -1;
+        break;
       }
-    } else {
-      cell.removeClass('jp-pb-pagebreakCodeCell');
+      case 'raw': {
+        scopeNum =
+          schema.scopes.find(cell => cell.index === index)?.pbNum ?? -1;
+        break;
+      }
     }
+    conditionalClass(
+      cell,
+      'jp-pb-pagebreakEven',
+      'jp-pb-pagebreakOdd',
+      scopeNum % 2 === 0
+    );
+
+    // add styling for code cells
+    toggleClass(cell, 'jp-pb-pagebreakCodeCell', cell.model.type === 'code');
 
     //add styling for pagebreak cells
-    if (
-      cell.model.type === 'raw' &&
-      cell.model.sharedModel.getSource().startsWith('pb')
-    ) {
-      cell.addClass('jp-pb-pagebreakCell');
-      const scope = schema.scopes.find(cell => cell.index === index);
+    toggleClass(
+      cell,
+      'jp-pb-pagebreakCell',
+      cell.model.type === 'raw' && cell.model.getMetadata('pagebreak')
+    );
 
-      if (scope !== undefined) {
-        conditionalClass(
-          cell,
-          'jp-pb-pagebreakEven',
-          'jp-pb-pagebreakOdd',
-          scope.pbNum % 2 === 0
-        );
-      }
-    } else {
-      cell.removeClass('jp-pb-pagebreakCell');
-    }
+    toggleClass(
+      cell,
+      'jp-pb-header',
+      cell.model.type === 'markdown' &&
+        cell.model.getMetadata('pagebreakheader')
+    );
   });
 }
-
+function toggleClass(cell: Cell, classname: string, condition: boolean) {
+  if (condition) {
+    cell.addClass(classname);
+  } else {
+    cell.removeClass(classname);
+  }
+}
 function conditionalClass(
   cell: Cell,
   class1: string,

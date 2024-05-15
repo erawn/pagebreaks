@@ -2,10 +2,9 @@ import { NotebookPanel } from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
 import { schemaManager } from './schemaManager';
 import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
-
 function buildNotebookSchema(notebook: NotebookPanel) {
   const cellList: PagebreakSchema = [];
-  notebook?.content?.widgets.forEach((cell, index) => {
+  notebook?.content?.widgets?.forEach((cell, index) => {
     if (cell.model.type === 'code') {
       const newCell: IPagebreakCell = {
         index: index,
@@ -16,8 +15,13 @@ function buildNotebookSchema(notebook: NotebookPanel) {
       cellList.push(newCell);
     } else if (cell.model.type === 'raw') {
       const content = cell.model.sharedModel.getSource();
-      if (content.startsWith('pb')) {
-        const names = content.split(' ').filter(name => name !== 'pb');
+      if (cell.model.getMetadata('pagebreak')) {
+        const names = content
+          .split('{')
+          .at(1)
+          ?.split('}')
+          .at(0)
+          ?.split(' ') ?? [''];
         // console.log('found pb names', names);
         const newCell: IPagebreakCell = {
           index: index,
@@ -27,6 +31,17 @@ function buildNotebookSchema(notebook: NotebookPanel) {
         };
         cellList.push(newCell);
       }
+    } else if (
+      cell.model.type === 'markdown' &&
+      cell.model.getMetadata('pagebreakheader')
+    ) {
+      const newCell: IPagebreakCell = {
+        index: index,
+        id: cell.model.id,
+        type: 'header',
+        variables: []
+      };
+      cellList.push(newCell);
     }
   });
   cellList.sort((cellA, cellB) => cellA.index - cellB.index);
@@ -47,7 +62,7 @@ function buildNotebookSchema(notebook: NotebookPanel) {
   }
   //Builds an Object with structure [cell.id]: matching pagebreak scope
   const cellsToScopes = cellList
-    .filter(cell => cell.type === 'code')
+    .filter(cell => cell.type === 'code' || cell.type === 'header')
     .map(cell => {
       const currentScope = scopeList
         .filter(pbCell => pbCell.index > cell.index)
@@ -114,12 +129,12 @@ function sendSchema(
   }
 
   if (manager.future === null || manager.future.isDisposed) {
-    console.log('sending Schema', schema);
+    // console.log('sending Schema', schema);
     const future = kernel.requestExecute(content);
     // Handle iopub messages
     future.onIOPub = msg => {
       // eslint-disable-next-line no-constant-condition
-      if (msg.header.msg_type !== 'status' || true) {
+      if (msg.header.msg_type !== 'status') {
         console.log(msg.content);
       }
     };
@@ -129,4 +144,66 @@ function sendSchema(
   // kernelModel.execute();
 }
 
-export { buildNotebookSchema, sendSchema };
+function orderCells(
+  notebook: NotebookPanel,
+  schema: {
+    cellsToScopes:
+      | {
+          [x: string]: number;
+        }
+      | undefined;
+    scopeList: {
+      [x: number]: string[];
+    };
+    scopes: PagebreakScopeList;
+  }
+) {
+  let didModify = false;
+  notebook?.content?.widgets.forEach((cell, index) => {
+    if (
+      cell.model.getMetadata('pagebreakheader') &&
+      cell.model.type === 'markdown'
+    ) {
+      console.log('index', index, 'id', cell.model.id);
+      console.log('cellstoscopes', schema.cellsToScopes);
+      const scopeNum = schema.cellsToScopes?.[cell.model.id] ?? 0;
+      console.log('scopenum', scopeNum);
+      const matchingPbIndex =
+        schema.scopes.find(scope => scope.pbNum === scopeNum)?.index ?? -1;
+      let previousPbIndex = -1;
+      console.log('matching index', matchingPbIndex);
+      if (matchingPbIndex > 0) {
+        previousPbIndex =
+          schema.scopes.find(scope => scope.pbNum === scopeNum - 1)?.index ??
+          -1;
+      } else {
+        previousPbIndex = 0;
+      }
+      console.log('index', index);
+      console.log('previndex', previousPbIndex);
+      if (index !== previousPbIndex + 1) {
+        console.log('header', index, "isn't formatted");
+        //If our pb header isn't directly under the previous pagebreak
+        notebook?.content?.widgets
+          .filter(
+            (searchCell, searchIndex) =>
+              searchCell.model.type === 'code' &&
+              searchIndex > previousPbIndex &&
+              searchIndex < matchingPbIndex
+          )
+          .forEach(cellToMove => {
+            console.log('moving cells', cellToMove.model.id);
+            const findIndex = notebook.content.widgets.findIndex(
+              searchCell => searchCell.model.id === cellToMove.model.id
+            );
+            notebook.content.moveCell(findIndex, index + 1);
+            cellToMove.update();
+          });
+        didModify = true;
+      }
+    }
+  });
+  return didModify;
+}
+
+export { buildNotebookSchema, orderCells, sendSchema };

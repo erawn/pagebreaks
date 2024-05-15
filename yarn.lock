@@ -3432,6 +3432,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/uuid@npm:^9.0.8":
+  version: 9.0.8
+  resolution: "@types/uuid@npm:9.0.8"
+  checksum: b8c60b7ba8250356b5088302583d1704a4e1a13558d143c549c408bf8920535602ffc12394ede77f8a8083511b023704bc66d1345792714002bfa261b17c5275
+  languageName: node
+  linkType: hard
+
 "@types/webpack-sources@npm:^0.1.5":
   version: 0.1.12
   resolution: "@types/webpack-sources@npm:0.1.12"
@@ -3800,6 +3807,7 @@ __metadata:
     "@types/lodash": ^4.17.0
     "@types/react": ^18.0.26
     "@types/react-addons-linked-state-mixin": ^0.14.22
+    "@types/uuid": ^9.0.8
     "@typescript-eslint/eslint-plugin": ^6.1.0
     "@typescript-eslint/parser": ^6.1.0
     classnames: ^2.5.1

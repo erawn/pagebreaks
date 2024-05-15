@@ -10,11 +10,10 @@ import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
-import { buildNotebookSchema, sendSchema } from './schema';
+import { addCommands } from './commands';
+import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
-
-
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'Pagebreaks:plugin',
   description: 'A JupyterLab extension.',
@@ -24,17 +23,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
   activate: (
     app: JupyterFrontEnd,
     notebookTracker: INotebookTracker,
-    settingRegistry: ISettingRegistry | null
+    settingRegistry: ISettingRegistry | null,
   ) => {
-    console.log('JupyterLab extension Pagebreaks is activated!!!!');
+    console.log('JupyterLab extension Pagebreaks is activated!');
+
     const manager = new schemaManager();
-    
+
+    addCommands(app,notebookTracker)
+
     app.formatChanged.connect(()=>{
       console.log('Format CHANGED')
     })
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setInterval(()=>{
-      console.log('interval CALL', app.shell.currentWidget?.isVisible);
+      // console.log('interval CALL', app.shell.currentWidget?.isVisible);
       if(app.shell.currentWidget?.isVisible){
         updatePagebreak(app, manager);
       }else{
@@ -157,8 +160,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
 function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
   const notebook = app.shell?.currentWidget as NotebookPanel;
-  const schema = buildNotebookSchema(notebook);
-  console.log('schema check');
+  let schema = buildNotebookSchema(notebook);
+  if(orderCells(notebook, schema)){
+    schema = buildNotebookSchema(notebook);
+  }
+  // console.log('schema check');
   tagNotebookCells(notebook, schema);
   const now = new Date()
   // eslint-disable-next-line no-constant-condition
@@ -172,6 +178,8 @@ function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
     const jsonSchema = JSON.stringify(schema);
     sendSchema(notebook, jsonSchema, manager);
     app.shell.currentWidget?.update()
+    app.shell.update()
+    notebook.update()
   }
 }
 export default plugin;

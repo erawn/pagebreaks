@@ -7,7 +7,9 @@ node_modules/
 *.egg-info/
 .ipynb_checkpoints
 *.tsbuildinfo
-labextension
+labextension/** 
+Pagebreaks/labextension/** 
+Pagebreaks/__pycache__/
 # Version file is handled by hatchling
 _version.py
 

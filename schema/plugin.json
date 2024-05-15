@@ -11,5 +11,17 @@
       "default": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "jupyter.lab.toolbars": {
+    "Cell": [
+      {
+        "name": "add-pagebreak",
+        "command": "toolbar-button:add-pagebreak"
+      },
+      {
+        "name": "render-markdows-cell",
+        "command": "toolbar-button:render-markdown-cell"
+      }
+    ]
+  }
 }
