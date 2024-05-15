@@ -60,9 +60,6 @@
   }
 }
 
-/* 
-@media only screen and (width <=760px) {
-    .jp-InputArea-editor {
-        margin-left: var(--jp-code-padding);
-    }
-} */
+.jp-Cell.jp-Notebook-cell:not(.jp-pb-selectedPagebreak) {
+  opacity: 0.8;
+}

@@ -1,7 +1,12 @@
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
 import { schemaManager } from './schemaManager';
-import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
+import {
+  IPagebreakCell,
+  PagebreakInternalSchema,
+  PagebreakSchema,
+  PagebreakScopeList
+} from './types';
 function buildNotebookSchema(notebook: NotebookPanel) {
   const cellList: PagebreakSchema = [];
   notebook?.content?.widgets?.forEach((cell, index) => {
@@ -51,13 +56,15 @@ function buildNotebookSchema(notebook: NotebookPanel) {
     .map((cell, index) => ({
       index: cell.index, //index in the list of cells
       pbNum: index, //index in the list of pagebreak scopes
-      exportedVariables: cell.variables //variables this scope exports
+      exportedVariables: cell.variables, //variables this scope exports
+      id: cell.id
     }));
   if (scopeList.length === 0) {
     scopeList.push({
       index: cellList.length,
       pbNum: 0,
-      exportedVariables: ['pagebreaks_simulated']
+      exportedVariables: ['pagebreaks_simulated'],
+      id: ''
     });
   }
   //Builds an Object with structure [cell.id]: matching pagebreak scope
@@ -144,34 +151,21 @@ function sendSchema(
   // kernelModel.execute();
 }
 
-function orderCells(
-  notebook: NotebookPanel,
-  schema: {
-    cellsToScopes:
-      | {
-          [x: string]: number;
-        }
-      | undefined;
-    scopeList: {
-      [x: number]: string[];
-    };
-    scopes: PagebreakScopeList;
-  }
-) {
+function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {
   let didModify = false;
-  notebook?.content?.widgets.forEach((cell, index) => {
+  notebook?.content?.widgets?.forEach((cell, index) => {
     if (
       cell.model.getMetadata('pagebreakheader') &&
       cell.model.type === 'markdown'
     ) {
-      console.log('index', index, 'id', cell.model.id);
-      console.log('cellstoscopes', schema.cellsToScopes);
+      // console.log('index', index, 'id', cell.model.id);
+      // console.log('cellstoscopes', schema.cellsToScopes);
       const scopeNum = schema.cellsToScopes?.[cell.model.id] ?? 0;
-      console.log('scopenum', scopeNum);
+      // console.log('scopenum', scopeNum);
       const matchingPbIndex =
         schema.scopes.find(scope => scope.pbNum === scopeNum)?.index ?? -1;
       let previousPbIndex = -1;
-      console.log('matching index', matchingPbIndex);
+      // console.log('matching index', matchingPbIndex);
       if (matchingPbIndex > 0) {
         previousPbIndex =
           schema.scopes.find(scope => scope.pbNum === scopeNum - 1)?.index ??
@@ -179,10 +173,10 @@ function orderCells(
       } else {
         previousPbIndex = 0;
       }
-      console.log('index', index);
-      console.log('previndex', previousPbIndex);
+      // console.log('index', index);
+      // console.log('previndex', previousPbIndex);
       if (index !== previousPbIndex + 1) {
-        console.log('header', index, "isn't formatted");
+        // console.log('header', index, "isn't formatted");
         //If our pb header isn't directly under the previous pagebreak
         notebook?.content?.widgets
           .filter(

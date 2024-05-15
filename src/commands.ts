@@ -79,7 +79,7 @@ function addCommands(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
     },
     isVisible: () =>
       notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
-      (app.shell.currentWidget as NotebookPanel).content.widgets.find(cell =>
+      (app.shell.currentWidget as NotebookPanel)?.content?.widgets?.find(cell =>
         cell.model.getMetadata('pagebreak')
       ) === undefined
   });

@@ -1,44 +1,27 @@
 import { Cell } from '@jupyterlab/cells';
 import { NotebookPanel } from '@jupyterlab/notebook';
-import { PagebreakScopeList } from './types';
+import { PagebreakInternalSchema } from './types';
+import { findScopeNumber } from './utils';
 function tagNotebookCells(
   notebook: NotebookPanel,
-  schema: {
-    cellsToScopes:
-      | {
-          [x: string]: number;
-        }
-      | undefined;
-    scopeList: {
-      [x: number]: string[];
-    };
-    scopes: PagebreakScopeList;
-  }
+  schema: PagebreakInternalSchema
 ) {
   // if we have a notebook with no real pagebreak cells, dont change the formatting
-  if (schema.scopeList[0].find(v => v === 'pagebreaks_simulated')) {
+  if (
+    schema.scopeList[0].find(v => v === 'pagebreaks_simulated')
+    // ||
+    // notebook?.content?.widgets?.find(
+    //   cell => cell.model.getMetadata('pagebreak') === undefined
+    // )
+  ) {
     return;
   }
-
-  // Clear all the tags so we can start over
-  // notebook?.content?.widgets.forEach((cell, index) => {
-  //   cell.clas;
-  // });
+  const activeCellScopeNum = notebook?.content?.activeCell
+    ? findScopeNumber(notebook?.content?.activeCell, schema)
+    : -1;
 
   notebook?.content?.widgets.forEach((cell, index) => {
-    let scopeNum = -1;
-    switch (cell.model.type) {
-      case 'markdown':
-      case 'code': {
-        scopeNum = schema?.cellsToScopes?.[cell.model.id] ?? -1;
-        break;
-      }
-      case 'raw': {
-        scopeNum =
-          schema.scopes.find(cell => cell.index === index)?.pbNum ?? -1;
-        break;
-      }
-    }
+    const scopeNum = findScopeNumber(cell, schema);
     conditionalClass(
       cell,
       'jp-pb-pagebreakEven',
@@ -46,10 +29,8 @@ function tagNotebookCells(
       scopeNum % 2 === 0
     );
 
-    // add styling for code cells
     toggleClass(cell, 'jp-pb-pagebreakCodeCell', cell.model.type === 'code');
 
-    //add styling for pagebreak cells
     toggleClass(
       cell,
       'jp-pb-pagebreakCell',
@@ -61,6 +42,13 @@ function tagNotebookCells(
       'jp-pb-header',
       cell.model.type === 'markdown' &&
         cell.model.getMetadata('pagebreakheader')
+    );
+
+    //highlight all cells in the selected pagebreak
+    toggleClass(
+      cell,
+      'jp-pb-selectedPagebreak',
+      scopeNum === activeCellScopeNum
     );
   });
 }

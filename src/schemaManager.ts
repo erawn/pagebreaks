@@ -1,6 +1,7 @@
 import { Kernel, KernelMessage } from '@jupyterlab/services';
+import { PagebreakInternalSchema } from './types';
 class schemaManager {
-  previousSchema: any | null;
+  previousSchema: PagebreakInternalSchema | null;
   lastSend: Date;
   future: Kernel.IShellFuture<
     KernelMessage.IExecuteRequestMsg,
