@@ -11,6 +11,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
 import { addCommands } from './commands';
+import { pgEventHandlers } from './events';
 import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
@@ -31,26 +32,56 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     const manager = new schemaManager();
 
-    addCommands(app, notebookTracker)
+    const updateCallback = () => {
+      updatePagebreak(app, manager)
+    }
+    addCommands(app, notebookTracker, updateCallback)
+
 
     app.formatChanged.connect(() => {
       console.log('Format CHANGED')
     })
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    setInterval(() => {
-      // console.log('interval CALL', app.shell.currentWidget?.isVisible);
+    const startupInterval = setInterval(async () => {
+      for (const widget of app.shell.widgets()) {
+
+        if (widget.isVisible) {
+          // console.log('found widget', widget.title, widget)
+          if (widget instanceof NotebookPanel) {
+            // console.log('found notebook panel!')
+            if (app.shell.currentWidget === null) {
+              const element: HTMLElement = document.getElementsByClassName('jp-WindowedPanel-viewport')[0] as HTMLElement;
+              console.log(element)
+              element.click();
+              element.focus();
+              // widget.content.node.click()
+              // widget.node.click()
+              // const panel = (widget as NotebookPanel)
+              // const cell = panel.content.widgets.at(1) as Cell
+              // if (cell !== undefined) {
+              //   console.log('selected cell')
+              //   panel.content.select((cell))
+              // }
+              // cell.node.click()
+
+
+              widget.update()
+              app.shell.update()
+              console.log('activated widget!', widget.id)
+            }
+          }
+        }
+      }
+      console.log('interval CALL', app.shell.currentWidget?.isVisible);
       if (app.shell.currentWidget?.isVisible) {
         updatePagebreak(app, manager);
-      } else {
-        app.shell.update();
-        updatePagebreak(app, manager);
-        console.log()
+        clearInterval(startupInterval)
       }
     }, 1000)
     notebookTracker.restored.then(() => {
       notebookTracker.currentWidget?.revealed.then(() => {
-        console.log('curwid', notebookTracker.currentWidget)
+        console.log('current widget')
         updatePagebreak(app, manager);
       })
       notebookTracker.activeCell?.ready.then(() => {
@@ -112,20 +143,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
     //     }
     //   }
     // });
-    // notebookTracker.activeCellChanged.connect(() => {
-    //   if (app.shell?.currentWidget instanceof NotebookPanel) {
-    //     const notebook = app.shell?.currentWidget as NotebookPanel;
-    //     if (notebook) {
-    //       notebook.revealed.then(() => {
-    //         console.log('activeCellChanged CALL');
-    //         updatePagebreak(app, manager);
-    //       });
-    //     }
-    //   }
-    // });
-    // notebookTracker.widgetUpdated.connect(() => {
-    //   console.log('widget updated');
-    // });
+    notebookTracker.activeCellChanged.connect(() => {
+      if (app.shell?.currentWidget instanceof NotebookPanel) {
+        const notebook = app.shell?.currentWidget as NotebookPanel;
+        if (notebook) {
+          notebook.revealed.then(() => {
+            console.log('activeCellChanged CALL');
+            updatePagebreak(app, manager);
+          });
+        }
+      }
+    });
+    notebookTracker.widgetUpdated.connect(() => {
+      updatePagebreak(app, manager);
+
+    });
     // if (app.shell.currentWidget instanceof NotebookPanel) {
     //   console.log('found shell');
     //   const notebook = app.shell.currentWidget as NotebookPanel;
@@ -142,47 +174,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
           notebook.revealed.then(() => {
             console.log('LabShell activeChanged CALL');
             updatePagebreak(app, manager);
+            pgEventHandlers(app, manager)
           });
         }
       }
     });
-    //select whole pagebreak on select header or footer, so users drag whole pagebreaks
-    notebookTracker.activeCellChanged.connect((tracker, cell) => {
-      if (cell?.model.getMetadata('pagebreakheader')) {
-        const notebook = (app.shell.currentWidget as NotebookPanel)
-        const scopeNum = manager?.previousSchema?.cellsToScopes?.[cell.model.id] ?? -1;
-        const matchingPbIndex = manager?.previousSchema?.scopes.find(
-          scope => scope.pbNum === scopeNum)?.index ?? -1;
 
-        if (matchingPbIndex >= 0) {
 
-          const overlappingHeaders = notebook.content.widgets.filter((searchCell, index) =>
-            searchCell.model.getMetadata('pagebreakheader') &&
-            index < matchingPbIndex &&
-            index > notebook.content.activeCellIndex)
-
-          if (overlappingHeaders.length === 0) { //this should always be true when the order is correct, but if its messed up, we need to be able to select the individual headers to fix it 
-            notebook.content.extendContiguousSelectionTo(matchingPbIndex)
-            notebook.content.update()
-          }
-        }
-      } else if (cell?.model.getMetadata('pagebreak')) {
-        const notebook = (app.shell.currentWidget as NotebookPanel)
-        const pbNum = manager?.previousSchema?.scopes.find(
-          searchCell => searchCell.id === cell.model.id)?.pbNum ?? -1;
-        const matchingPbHeader = notebook?.content?.widgets?.find(
-          searchCell => (searchCell.model.getMetadata('pagebreakheader') &&
-            manager?.previousSchema?.cellsToScopes?.[searchCell.model.id] === pbNum)) ?? undefined
-
-        if (matchingPbHeader !== undefined) {
-          const pbIndex = notebook.content.activeCellIndex
-          notebook.content.select(matchingPbHeader)
-          notebook.content.extendContiguousSelectionTo(pbIndex)
-          notebook.content.update()
-        }
-      }
-
-    })
 
     if (settingRegistry) {
       settingRegistry

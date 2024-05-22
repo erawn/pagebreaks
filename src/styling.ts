@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Cell } from '@jupyterlab/cells';
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { PagebreakInternalSchema } from './types';
@@ -41,7 +42,7 @@ function tagNotebookCells(
       cell,
       'jp-pb-header',
       cell.model.type === 'markdown' &&
-        cell.model.getMetadata('pagebreakheader')
+      cell.model.getMetadata('pagebreakheader')
     );
 
     //highlight all cells in the selected pagebreak
@@ -50,7 +51,9 @@ function tagNotebookCells(
       'jp-pb-selectedPagebreak',
       scopeNum === activeCellScopeNum
     );
+    cell.update()
   });
+  notebook?.content.update();
 }
 function toggleClass(cell: Cell, classname: string, condition: boolean) {
   if (condition) {

@@ -3,7 +3,11 @@ import { JupyterFrontEnd } from '@jupyterlab/application';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { LabIcon } from '@jupyterlab/ui-components';
 import '../style/index.css';
-function addCommands(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
+function addCommands(
+  app: JupyterFrontEnd,
+  notebookTracker: INotebookTracker,
+  updateCallback: CallableFunction
+) {
   const { commands } = app;
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -76,6 +80,7 @@ function addCommands(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
       notebook.activeCell ? notebook.select(notebook.activeCell) : {};
       notebook.update();
       notebook.activeCell?.update();
+      updateCallback();
     },
     isVisible: () =>
       notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
@@ -83,6 +88,21 @@ function addCommands(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
         cell.model.getMetadata('pagebreak')
       ) === undefined
   });
+
+  // commands.addCommand('notebook-cells:run-and-advance', {
+  //   label: args => (args.toolbar ? '' : 'Run and Advance'),
+  //   caption: 'Run the selected cells and advance.',
+  //   icon: args => (args.toolbar ? runIcon : undefined),
+  //   execute: () => {
+  //     const nbWidget = app.shell.currentWidget as NotebookPanel;
+  //     return NotebookActions.runAndAdvance(
+  //       nbWidget.content,
+  //       nbWidget.context.sessionContext,
+  //       nbWidget.toolbar.
+  //       sessionContextDialogs
+  //     );
+  //   }
+  // });
 }
 
 export { addCommands };

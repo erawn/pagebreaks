@@ -380,14 +380,30 @@ class Pagebreak(object):
             for (key, val) in schema.get("scopeList", {}).items()
         }
 
-        # check for duplicates
-        exportedNamesListofLists = [
-            list(eachSet) for (key, eachSet) in scopeList.items()
-        ]
-        exportedNames = list(itertools.chain.from_iterable(exportedNamesListofLists))
-        duplicateNames = [
-            val for val, count in Counter(exportedNames).items() if count > 1
-        ]
+        # check if our cell_id is in the scope
+        currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
+        if currentContext == -1:
+            raise PagebreakError("Couldn't find schema").with_traceback(None)
+        self.current_context = currentContext
+
+        # check for duplicates and previous exports which aren't defined
+        duplicateNames = set()
+        seen = set()
+        cleanedScopeList: dict[int, set[str]] = {}
+        for key, eachSet in sorted(scopeList.items()):
+            for var in eachSet:
+                if var in seen:
+                    duplicateNames.add(var)
+                else:
+                    seen.add(var)
+                    if (
+                        self.shell.user_ns.get(transformName(var, key, True), "NoVar!")
+                        != "NoVar!"
+                    ) | key >= self.current_context:
+                        if cleanedScopeList.get(key) is not None:
+                            cleanedScopeList[key].add(var)
+                        else:
+                            cleanedScopeList[key] = set(var)
 
         if len(duplicateNames) > 0:
             # logging.info("duplicateNames", duplicateNames)
@@ -397,26 +413,16 @@ class Pagebreak(object):
                 + "', skipping later exports"
             )
 
-        # check if our cell_id is in the scope
-        currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
-        # logging.info(
-        #     "curcontext",
-        #     currentContext,
-        #     "scopelist",
-        #     scopeList,
-        # )
-        if currentContext == -1:
-            raise PagebreakError("Couldn't find schema").with_traceback(None)
+        # remove exported variables for
 
-        self.current_context = currentContext
         self.ast_transformer.setStoredData(
             astWalkData(
                 currentContext=currentContext,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
-                exportedVariables=scopeList,
+                exportedVariables=cleanedScopeList,
             )
         )
-        logging.info("setting data:" + str(scopeList) + str(currentContext))
+        logging.info("setting data:" + str(cleanedScopeList) + str(currentContext))
 
         # cache exported variables
         cache = {
@@ -428,7 +434,7 @@ class Pagebreak(object):
         ##find variables we want to export
         scopesToExport: dict[int, set[str]] = {
             context: val
-            for (context, val) in scopeList.items()
+            for (context, val) in cleanedScopeList.items()
             if context < currentContext
         }
 
