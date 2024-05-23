@@ -396,15 +396,17 @@ class Pagebreak(object):
                     duplicateNames.add(var)
                 else:
                     seen.add(var)
+                    searchName = transformName(var, key, False)
+                    print("searching for", searchName)
                     if (
-                        self.shell.user_ns.get(transformName(var, key, True), "NoVar!")
-                        != "NoVar!"
+                        self.shell.user_ns.get(searchName, "NoVar!") != "NoVar!"
                     ) | key >= self.current_context:
                         if cleanedScopeList.get(key) is not None:
                             cleanedScopeList[key].add(var)
                         else:
-                            cleanedScopeList[key] = set(var)
-
+                            cleanedScopeList[key] = set([var])
+        print("scopelist", scopeList)
+        print("cleanedscopeLIst", cleanedScopeList)
         if len(duplicateNames) > 0:
             # logging.info("duplicateNames", duplicateNames)
             warnings.warn(
