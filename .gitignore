@@ -127,4 +127,5 @@ dmypy.json
 .yarn/
 
 
- backend/pagebreak_ip/*.ipynb
+**/pagebreak_ip/Untitled*
+**/**/Untitiled*.ipynb
