@@ -42,7 +42,7 @@ function tagNotebookCells(
       cell,
       'jp-pb-header',
       cell.model.type === 'markdown' &&
-      cell.model.getMetadata('pagebreakheader')
+        cell.model.getMetadata('pagebreakheader')
     );
 
     //highlight all cells in the selected pagebreak
@@ -51,7 +51,7 @@ function tagNotebookCells(
       'jp-pb-selectedPagebreak',
       scopeNum === activeCellScopeNum
     );
-    cell.update()
+    cell.update();
   });
   notebook?.content.update();
 }
