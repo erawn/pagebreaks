@@ -1,0 +1,4 @@
+jlpm run lint
+cd backend/pagebreak_ip && python -m pytest tests
+
+exit 1
