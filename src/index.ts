@@ -6,7 +6,6 @@ import {
 } from '@jupyterlab/application';
 // import { IEditorServices } from '@jupyterlab/codeeditor';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
-
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
@@ -15,7 +14,6 @@ import { pgEventHandlers } from './events';
 import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
-
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'Pagebreaks:plugin',
   description: 'A JupyterLab extension.',
@@ -44,39 +42,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const startupInterval = setInterval(async () => {
       for (const widget of app.shell.widgets()) {
         if (widget.isVisible) {
-          // console.log('found widget', widget.title, widget)
           if (widget instanceof NotebookPanel) {
-            // console.log('found notebook panel!')
-            if (app.shell.currentWidget === null) {
-              const element: HTMLElement = document.getElementsByClassName(
-                'jp-WindowedPanel-viewport'
-              )[0] as HTMLElement;
-              console.log(element);
-              element.click();
-              element.focus();
-              // widget.content.node.click()
-              // widget.node.click()
-              // const panel = (widget as NotebookPanel)
-              // const cell = panel.content.widgets.at(1) as Cell
-              // if (cell !== undefined) {
-              //   console.log('selected cell')
-              //   panel.content.select((cell))
-              // }
-              // cell.node.click()
-
-              widget.update();
-              app.shell.update();
-              console.log('activated widget!', widget.id);
-            }
+            updatePagebreak(app, manager, widget)
           }
         }
       }
-      console.log('interval CALL', app.shell.currentWidget?.isVisible);
-      if (app.shell.currentWidget?.isVisible) {
+      console.log('Waiting To Focus...')
+      const elements = document.getElementsByClassName('jp-pb-pagebreakCell')
+      if (elements.length > 0) {
         updatePagebreak(app, manager);
         clearInterval(startupInterval);
       }
-    }, 1000);
+    }, 100);
     notebookTracker.restored.then(() => {
       notebookTracker.currentWidget?.revealed.then(() => {
         console.log('current widget');
@@ -189,8 +166,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager) {
-  const notebook = app.shell?.currentWidget as NotebookPanel;
+function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager, notebookIn?: NotebookPanel) {
+  const notebook = (app.shell?.currentWidget as NotebookPanel) ?? notebookIn;
   let schema = buildNotebookSchema(notebook);
   if (orderCells(notebook, schema)) {
     schema = buildNotebookSchema(notebook);
