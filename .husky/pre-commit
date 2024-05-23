@@ -1,2 +1,3 @@
+jlpm lint-staged
+jlpm run lint:check
 cd backend/pagebreak_ip && python -m pytest tests
-jlpm run lint:check & jlpm run lint

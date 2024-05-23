@@ -43,12 +43,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       for (const widget of app.shell.widgets()) {
         if (widget.isVisible) {
           if (widget instanceof NotebookPanel) {
-            updatePagebreak(app, manager, widget)
+            updatePagebreak(app, manager, widget);
           }
         }
       }
-      console.log('Waiting To Focus...')
-      const elements = document.getElementsByClassName('jp-pb-pagebreakCell')
+      console.log('Waiting To Focus...');
+      const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
       if (elements.length > 0) {
         updatePagebreak(app, manager);
         clearInterval(startupInterval);
@@ -166,7 +166,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-function updatePagebreak(app: JupyterFrontEnd, manager: schemaManager, notebookIn?: NotebookPanel) {
+function updatePagebreak(
+  app: JupyterFrontEnd,
+  manager: schemaManager,
+  notebookIn?: NotebookPanel
+) {
   const notebook = (app.shell?.currentWidget as NotebookPanel) ?? notebookIn;
   let schema = buildNotebookSchema(notebook);
   if (orderCells(notebook, schema)) {
