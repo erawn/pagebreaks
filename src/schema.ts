@@ -187,11 +187,11 @@ function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {
           )
           .forEach(cellToMove => {
             console.log('moving cells', cellToMove.model.id);
-            const findIndex = notebook.content.widgets.findIndex(
-              searchCell => searchCell.model.id === cellToMove.model.id
-            );
-            notebook.content.moveCell(findIndex, index + 1);
-            cellToMove.update();
+            // const findIndex = notebook.content.widgets.findIndex(
+            //   searchCell => searchCell.model.id === cellToMove.model.id
+            // );
+            // notebook.content.moveCell(findIndex, index + 1);
+            // cellToMove.update();
           });
         didModify = true;
       }

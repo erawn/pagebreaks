@@ -1,4 +1,4 @@
-# Pagebreaks
+# pagebreaks
 
 A JupyterLab extension.
 
@@ -11,7 +11,7 @@ A JupyterLab extension.
 To install the extension, execute:
 
 ```bash
-pip install Pagebreaks
+pip install pagebreaks
 ```
 
 ## Uninstall
@@ -19,7 +19,7 @@ pip install Pagebreaks
 To remove the extension, execute:
 
 ```bash
-pip uninstall Pagebreaks
+pip uninstall pagebreaks
 ```
 
 ## Contributing
@@ -34,7 +34,7 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Change directory to the Pagebreaks directory
+# Change directory to the pagebreaks directory
 # Install package in development mode
 pip install -e "."
 # Link your development version of the extension with JupyterLab
@@ -46,7 +46,7 @@ jlpm # install packages
 jlpm build
 ```
 
-If issues, delete: ~/miniforge3/envs/notebook/share/jupyter/labextensions/Pagebreaks/
+If issues, delete: ~/miniforge3/envs/notebook/share/jupyter/labextensions/pagebreaks/
 
 You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
 
@@ -68,12 +68,12 @@ jupyter lab build --minimize=False
 ### Development uninstall
 
 ```bash
-pip uninstall Pagebreaks
+pip uninstall pagebreaks
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `Pagebreaks` within that folder.
+folder is located. Then you can remove the symlink named `pagebreaks` within that folder.
 
 ### Testing the extension
 

@@ -15,7 +15,7 @@ import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'Pagebreaks:plugin',
+  id: 'pagebreaks:plugin',
   description: 'A JupyterLab extension.',
   autoStart: true,
   requires: [INotebookTracker],
@@ -25,7 +25,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     notebookTracker: INotebookTracker,
     settingRegistry: ISettingRegistry | null
   ) => {
-    console.log('JupyterLab extension Pagebreaks is activated!');
+    console.log('JupyterLab extension pagebreaks is activated!');
 
     const manager = new schemaManager();
 
@@ -157,10 +157,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       settingRegistry
         .load(plugin.id)
         .then(settings => {
-          console.log('Pagebreaks settings loaded:', settings.composite);
+          console.log('pagebreaks settings loaded:', settings.composite);
         })
         .catch(reason => {
-          console.error('Failed to load settings for Pagebreaks.', reason);
+          console.error('Failed to load settings for pagebreaks.', reason);
         });
     }
   }

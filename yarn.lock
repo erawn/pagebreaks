@@ -3794,9 +3794,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"Pagebreaks@workspace:.":
+"pagebreaks@workspace:.":
   version: 0.0.0-use.local
-  resolution: "Pagebreaks@workspace:."
+  resolution: "pagebreaks@workspace:."
   dependencies:
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/builder": ^4.0.0

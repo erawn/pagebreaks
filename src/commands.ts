@@ -48,7 +48,7 @@ function addCommands(
         .execute('notebook:run-cell', { origin: 'init' })
         .catch(reason => {
           console.error(
-            `An error occurred during the execution of Running Pagebreaks Command.\n${reason}`
+            `An error occurred during the execution of Running pagebreaks Command.\n${reason}`
           );
         });
       const newCodeIndex = notebook.activeCell

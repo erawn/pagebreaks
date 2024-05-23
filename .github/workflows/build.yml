@@ -1,10 +1,10 @@
 name: Build
 
 on:
-  push:
-    branches: main
+  # push:
+  #   branches: ["main"]
   pull_request:
-    branches: "*"
+    branches: ["*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -41,7 +41,7 @@ jobs:
           python -m pip install .[test]
 
           jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "Pagebreaks.*OK"
+          jupyter labextension list 2>&1 | grep -ie "pagebreaks.*OK"
           python -m jupyterlab.browser_check
 
       - name: Package the extension

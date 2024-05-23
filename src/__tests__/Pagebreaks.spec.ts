@@ -4,7 +4,7 @@
 
 // see galata/test/benchmark/notebook.spec.ts
 
-describe('Pagebreaks', () => {
+describe('pagebreaks', () => {
   it('should be tested', () => {
     expect(1 + 1).toEqual(2);
   });

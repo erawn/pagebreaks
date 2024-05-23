@@ -255,7 +255,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
 
                     message = (
-                        """PagebreaksError: Attempted to Redefine Exported Variable: '"""
+                        """pagebreaksError: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
                         + """' elsewhere in the notebook"""
                     )

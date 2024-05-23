@@ -1,7 +1,7 @@
 {
   "jupyter.lab.shortcuts": [],
-  "title": "Pagebreaks",
-  "description": "Pagebreaks settings.",
+  "title": "pagebreaks",
+  "description": "pagebreaks settings.",
   "type": "object",
   "properties": {
     "flag": {
