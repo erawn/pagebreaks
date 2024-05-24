@@ -63,3 +63,12 @@
 .jp-Cell.jp-Notebook-cell:not(.jp-pb-selectedPagebreak) {
   opacity: 0.8;
 }
+
+.jp-Notebook-cell.jp-mod-dropTarget-bottom,
+.jp-Notebook.jp-mod-commandMode
+  .jp-Notebook-cell.jp-mod-active.jp-mod-selected.jp-mod-dropTarget-bottom {
+  border-bottom-color: var(--jp-private-notebook-selected-color);
+  border-bottom-style: solid;
+  /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
+  border-bottom-width: 2px;
+}
