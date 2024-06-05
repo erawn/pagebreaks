@@ -30,9 +30,11 @@ function addCommands(
 
       const model = notebook.model;
 
-      const headerIndex = notebook.activeCell
-        ? notebook.activeCellIndex + 1
-        : 0;
+      //if we insert the first pagebreak, it should be inserted at the top
+      const headerIndex =
+        notebookTracker.activeCell?.model.getMetadata('pagebreak') === true
+          ? notebook.activeCellIndex + 1
+          : 0;
       model.sharedModel.insertCell(headerIndex, {
         cell_type: 'markdown',
         metadata: {
@@ -51,9 +53,7 @@ function addCommands(
             `An error occurred during the execution of Running pagebreaks Command.\n${reason}`
           );
         });
-      const newCodeIndex = notebook.activeCell
-        ? notebook.activeCellIndex + 1
-        : 0;
+      const newCodeIndex = notebook.activeCellIndex + 1;
       model.sharedModel.insertCell(newCodeIndex, {
         cell_type: 'code',
         metadata: {
@@ -62,9 +62,7 @@ function addCommands(
         }
       });
       notebook.activeCellIndex = newCodeIndex;
-      const footerIndex = notebook.activeCell
-        ? notebook.activeCellIndex + 1
-        : 0;
+      const footerIndex = notebook.activeCellIndex + 1;
       model.sharedModel.insertCell(footerIndex, {
         cell_type: 'raw',
         metadata: {

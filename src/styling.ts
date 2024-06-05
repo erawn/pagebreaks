@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Cell } from '@jupyterlab/cells';
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { PagebreakInternalSchema } from './types';

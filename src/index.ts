@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin,
@@ -10,7 +9,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
 import { addCommands } from './commands';
-import { pgEventHandlers } from './events';
+import { pagebreakEventHandlers } from './events';
 import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
@@ -29,10 +28,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     const manager = new schemaManager();
 
-    const updateCallback = () => {
+    let eventHandlers: pagebreakEventHandlers | null = null;
+
+    addCommands(app, notebookTracker, () => {
       updatePagebreak(app, manager);
-    };
-    addCommands(app, notebookTracker, updateCallback);
+    });
 
     app.formatChanged.connect(() => {
       console.log('Format CHANGED');
@@ -50,6 +50,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       console.log('Waiting To Focus...');
       const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
       if (elements.length > 0) {
+        console.log('Focused');
         updatePagebreak(app, manager);
         clearInterval(startupInterval);
       }
@@ -124,12 +125,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
           notebook.revealed.then(() => {
             console.log('activeCellChanged CALL');
             updatePagebreak(app, manager);
+            eventHandlers?.update();
           });
         }
       }
     });
     notebookTracker.widgetUpdated.connect(() => {
       updatePagebreak(app, manager);
+      if (
+        notebookTracker.currentWidget?.isAttached &&
+        notebookTracker.currentWidget instanceof NotebookPanel
+      ) {
+        const notebook = notebookTracker.currentWidget;
+        eventHandlers?.switchNotebooks(notebook.content);
+      }
     });
     // if (app.shell.currentWidget instanceof NotebookPanel) {
     //   console.log('found shell');
@@ -147,7 +156,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
           notebook.revealed.then(() => {
             console.log('LabShell activeChanged CALL');
             updatePagebreak(app, manager);
-            pgEventHandlers(app, manager);
+            if (eventHandlers === null) {
+              if (notebook.content.isAttached) {
+                eventHandlers = new pagebreakEventHandlers(
+                  notebook.content,
+                  manager
+                );
+              }
+            }
           });
         }
       }
@@ -172,6 +188,7 @@ function updatePagebreak(
   notebookIn?: NotebookPanel
 ) {
   const notebook = (app.shell?.currentWidget as NotebookPanel) ?? notebookIn;
+
   let schema = buildNotebookSchema(notebook);
   if (orderCells(notebook, schema)) {
     schema = buildNotebookSchema(notebook);
@@ -182,7 +199,7 @@ function updatePagebreak(
   // eslint-disable-next-line no-constant-condition
   if (
     !_.isEqual(manager.previousSchema, schema) ||
-    now.getTime() - manager.lastSend.getTime() > 300
+    now.getTime() - manager.lastSend.getTime() > 100
   ) {
     // console.log('previous schema', manager.previousSchema);
     if (

@@ -397,7 +397,7 @@ class Pagebreak(object):
                 else:
                     seen.add(var)
                     searchName = transformName(var, key, False)
-                    print("searching for", searchName)
+                    # print("searching for", searchName)
                     if (
                         self.shell.user_ns.get(searchName, "NoVar!") != "NoVar!"
                     ) | key >= self.current_context:
@@ -405,8 +405,8 @@ class Pagebreak(object):
                             cleanedScopeList[key].add(var)
                         else:
                             cleanedScopeList[key] = set([var])
-        print("scopelist", scopeList)
-        print("cleanedscopeLIst", cleanedScopeList)
+        # print("scopelist", scopeList)
+        # print("cleanedscopeLIst", cleanedScopeList)
         if len(duplicateNames) > 0:
             # logging.info("duplicateNames", duplicateNames)
             warnings.warn(
