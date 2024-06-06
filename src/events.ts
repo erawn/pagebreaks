@@ -303,7 +303,7 @@ export class pagebreakEventHandlers {
    * Handle `mousedown` event in the capture phase for the widget.
    */
   handleMouseDownCapture(event: MouseEvent): void {
-    console.log('mousedown capture');
+    // console.log('mousedown capture');
     const { button, shiftKey } = event;
 
     const [target, index] = this.findEventTargetAndCell(event, this._notebook);
@@ -326,7 +326,7 @@ export class pagebreakEventHandlers {
     }
   }
   handleMouseDown(event: MouseEvent): void {
-    console.log('mousedown');
+    // console.log('mousedown');
     const notebook = this._notebook;
     const { button, shiftKey } = event;
 
@@ -361,7 +361,7 @@ export class pagebreakEventHandlers {
     if (targetArea !== 'input') {
       notebook.mode = 'command';
     }
-    console.log('target area: ', targetArea);
+    // console.log('target area: ', targetArea);
     if (targetArea === 'notebook') {
       // notebook.deselectAll();
     } else if (targetArea === 'prompt' || targetArea === 'cell') {
@@ -388,7 +388,7 @@ export class pagebreakEventHandlers {
         this._mouseMode = 'select';
         document.addEventListener('mouseup', this, true);
         document.addEventListener('mousemove', this, true);
-        console.log('added mousemove listener');
+        // console.log('added mousemove listener');
       } else if (button === 0 && !shiftKey) {
         // Prepare to start a drag if we are on the drag region.
         if (targetArea === 'prompt') {
@@ -401,7 +401,7 @@ export class pagebreakEventHandlers {
 
           // Enter possible drag mode
           this._mouseMode = 'couldDrag';
-          console.log('could Drag');
+          // console.log('could Drag');
           document.addEventListener('mouseup', this, true);
           //because the notebook by default adds a listener to document,
           // we have to preempt with a listener on window
@@ -453,7 +453,7 @@ export class pagebreakEventHandlers {
     // //have to remove the default listener which gets attached on mousedown
     // document.removeEventListener('mousemove', this._notebook, true);
 
-    console.log('mousemove', event.target);
+    // console.log('mousemove', event.target);
     // If in select mode, update the selection
     switch (this._mouseMode) {
       case 'select': {
@@ -465,7 +465,7 @@ export class pagebreakEventHandlers {
         break;
       }
       case 'couldDrag': {
-        console.log('could drag');
+        // console.log('could drag');
         // Check for a drag initialization.
         const data = this._dragData!;
         const dx = Math.abs(event.clientX - data.pressX);
@@ -481,7 +481,7 @@ export class pagebreakEventHandlers {
           }
           const targetCell = this._notebook.widgets.at(targetIndex);
 
-          console.log('initiating drag on ', targetCell);
+          // console.log('initiating drag on ', targetCell);
           const isHeader =
             targetCell?.model?.getMetadata('pagebreakheader') === true;
           const isFooter = targetCell?.model?.getMetadata('pagebreak') === true;
@@ -523,7 +523,7 @@ export class pagebreakEventHandlers {
                 headerIndex = matchingPbHeaderIndex;
               }
             }
-            console.log('found header/footer', headerIndex, ':', footerIndex);
+            // console.log('found header/footer', headerIndex, ':', footerIndex);
             if (headerIndex !== -1 && footerIndex !== -1) {
               //check for overlapping headers
               const overlappingHeaders = this._notebook.widgets.filter(
@@ -537,12 +537,12 @@ export class pagebreakEventHandlers {
                 console.error('Bad Selection');
                 return;
               }
-              console.log(
-                'Found Drag Selection ',
-                headerIndex,
-                ':',
-                footerIndex
-              );
+              // console.log(
+              //   'Found Drag Selection ',
+              //   headerIndex,
+              //   ':',
+              //   footerIndex
+              // );
               //select whole pagebreak
               this._notebook.deselectAll();
               this._notebook.activeCellIndex = footerIndex;
@@ -832,7 +832,7 @@ export class pagebreakEventHandlers {
     return -1;
   }
   startDrag(index: number, clientX: number, clientY: number): void {
-    console.log('START DRAG');
+    // console.log('START DRAG');
     const cells = this._notebook.model!.cells;
     const selected: nbformat.ICell[] = [];
     const toMove: Cell[] = [];

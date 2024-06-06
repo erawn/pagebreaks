@@ -48,16 +48,20 @@ function getVariableList(props: IVariableListProps): string {
 
   const vars: string[] = [];
   if (scopeNum) {
-    for (let i = scopeNum - 1; i >= 0; i--) {
+    for (let i = 0; i < scopeNum; i++) {
       vars.push(...(schema?.scopeList[i] ?? []));
     }
   }
-  console.log(vars);
-  // const formattedVars = vars.map((varName, index) => {
-  //   index === vars.length ? varName : varName;
-  // });
   const formattedVars = vars.filter(name => name !== '').join(', ');
   return formattedVars;
+}
+function getFormattedVariableList(props: IVariableListProps): string {
+  const varList = getVariableList(props);
+  if (varList !== '') {
+    return 'Exported: ' + varList;
+  } else {
+    return '';
+  }
 }
 function VariableListComponent(props: IVariableListProps): JSX.Element {
   // const translator = props.translator || nullTranslator;
@@ -73,7 +77,7 @@ function VariableListComponent(props: IVariableListProps): JSX.Element {
           className={TOOLBAR_VARIABLE_LIST_CLASS}
           // onClick={callback}
           // tooltip={trans.__('Switch kernel')}
-          label={getVariableList(props)}
+          label={getFormattedVariableList(props)}
         />
       )}
     </UseSignal>

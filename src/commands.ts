@@ -3,91 +3,11 @@ import { JupyterFrontEnd } from '@jupyterlab/application';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { LabIcon } from '@jupyterlab/ui-components';
 import '../style/index.css';
-// export interface VariableListProps {
-//   notebookTracker: INotebookTracker,
-// }
-// const notificationStatus = ReactWidget.create(
-//   <UseSignal signal={model.stateChanged}>
-//     {() => {
-//       if (model.highlight || (popup && !popup.isDisposed)) {
-//         notificationStatus.addClass('jp-mod-selected');
-//       } else {
-//         notificationStatus.removeClass('jp-mod-selected');
-//       return (
-//         <NotificationStatus
-//           count={model.count}
-//           highlight={model.highlight}
-//           trans={trans}
-//           onClick={displayNotifications}
-//         />
-//       );
-//     }}
-//   </UseSignal>
-// );
-// function LiveButton(isActiveSignal: ISignal<any, boolean>) {
-//   return (
-//     <UseSignal
-//       signal={isActiveSignal}
-//       initialArgs={true}
-//       children={(_, isActive) => <Button isActive={isActive}>}
-//     />
-//   )
-//  }
-// function KernelNameComponent(
-//   props: VariableListProps
-// ): JSX.Element {
-//   // const callback = () => {
-//   //   ;
-//   // };
-//   const { notebookTracker } = props;
-
-//   return (
-//     <UseSignal signal={isActiveSignal} initialArgs={true}>
-//     {(_, isActive) => <Button isActive={isActive}>}
-//    </UseSignal>
-//   );
-// <UseSignal signal={}>
-
-// </UseSignal>
-//   <UseSignal signal={isActiveSignal}>
-//   {(_, isActive) => <Button isActive={isActive}>}
-//  </UseSignal>
-//   <UseSignal signal={props.notebookTracker} initialArgs={true}>
-//     {sessionContext => (
-//       <ToolbarButtonComponent
-//         className={TOOLBAR_KERNEL_NAME_CLASS}
-//         onClick={callback}
-//         tooltip={trans.__('Switch kernel')}
-//         label={sessionContext?.kernelDisplayName}
-//       />
-//     )}
-//   </UseSignal>
-// }
-// function createKernelNameItem(
-//   sessionContext: ISessionContext,
-//   dialogs?: ISessionContext.IDialogs,
-//   translator?: ITranslator
-// ): Widget {
-//   const el = ReactWidget.create(
-//     <KernelNameComponent
-//       sessionContext={sessionContext}
-//       dialogs={dialogs ?? new SessionContextDialogs({ translator })}
-//       translator={translator}
-//     />
-//   );
-//   el.addClass('jp-KernelName');
-//   return el;
-// }
 function addCommands(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
   updateCallback: CallableFunction
 ) {
-  // notebookTracker.currentWidget?.toolbar.addItem(
-  //   'toolbar:list-variables',
-  //   toolbar.createKernelNameItem(sessionContext, dialogs)
-  // );
-
   const { commands } = app;
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires

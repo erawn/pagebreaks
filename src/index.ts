@@ -10,9 +10,10 @@ import _ from 'lodash';
 import '../style/index.css';
 import { addCommands } from './commands';
 import { pagebreakEventHandlers } from './events';
-import { buildNotebookSchema, orderCells, sendSchema } from './schema';
+import { buildNotebookSchema, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
+import { cleanNbTypes } from './utils';
 import { addVariableListWidget } from './variableListToolbar';
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'pagebreaks:plugin',
@@ -192,11 +193,11 @@ function updatePagebreak(
   notebookIn?: NotebookPanel
 ) {
   const notebook = (app.shell?.currentWidget as NotebookPanel) ?? notebookIn;
-
-  let schema = buildNotebookSchema(notebook);
-  if (orderCells(notebook, schema)) {
-    schema = buildNotebookSchema(notebook);
-  }
+  cleanNbTypes(notebook.content);
+  const schema = buildNotebookSchema(notebook);
+  // if (orderCells(notebook, schema)) {
+  //   schema = buildNotebookSchema(notebook);
+  // }
   // console.log('schema check');
   tagNotebookCells(notebook, schema);
   const now = new Date();

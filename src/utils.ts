@@ -1,6 +1,8 @@
 import { Cell } from '@jupyterlab/cells';
+import type * as nbformat from '@jupyterlab/nbformat';
+import { Notebook, NotebookActions } from '@jupyterlab/notebook';
+import '../style/index.css';
 import { PagebreakInternalSchema } from './types';
-
 function findScopeNumber(cell: Cell, schema: PagebreakInternalSchema): number {
   switch (cell.model.type) {
     case 'markdown':
@@ -17,4 +19,33 @@ function findScopeNumber(cell: Cell, schema: PagebreakInternalSchema): number {
   return -1;
 }
 
-export { findScopeNumber };
+function cleanNbTypes(notebook: Notebook) {
+  console.log('cleaning nb types');
+  notebook?.widgets.forEach((cell, index) => {
+    // console.log('isheader?', cell?.model.getMetadata('pagebreakheader'));
+    // console.log('type', cell?.model.sharedModel.cell_type);
+    if (
+      cell?.model.getMetadata('pagebreak') &&
+      cell?.model.sharedModel.cell_type !== 'raw'
+    ) {
+      console.log('changing to raw');
+      const oldActive = notebook.activeCell;
+      notebook.select(cell);
+      NotebookActions.changeCellType(notebook, 'raw' as nbformat.CellType);
+      oldActive ? notebook.select(oldActive) : {};
+    } else if (
+      cell?.model.getMetadata('pagebreakheader') &&
+      cell?.model.sharedModel.cell_type !== 'markdown'
+    ) {
+      console.log('changing to md');
+      const oldActive = notebook.activeCell;
+      notebook.select(cell);
+      NotebookActions.changeCellType(notebook, 'markdown' as nbformat.CellType);
+      NotebookActions.run(notebook);
+      oldActive ? notebook.select(oldActive) : {};
+    }
+  });
+  notebook.activate();
+}
+
+export { cleanNbTypes, findScopeNumber };

@@ -1,12 +1,7 @@
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
 import { schemaManager } from './schemaManager';
-import {
-  IPagebreakCell,
-  PagebreakInternalSchema,
-  PagebreakSchema,
-  PagebreakScopeList
-} from './types';
+import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
 function buildNotebookSchema(notebook: NotebookPanel) {
   const cellList: PagebreakSchema = [];
   notebook?.content?.widgets?.forEach((cell, index) => {
@@ -152,53 +147,53 @@ function sendSchema(
   // kernelModel.execute();
 }
 
-function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {
-  let didModify = false;
-  notebook?.content?.widgets?.forEach((cell, index) => {
-    if (
-      cell.model.getMetadata('pagebreakheader') &&
-      cell.model.type === 'markdown'
-    ) {
-      // console.log('index', index, 'id', cell.model.id);
-      // console.log('cellstoscopes', schema.cellsToScopes);
-      const scopeNum = schema.cellsToScopes?.[cell.model.id] ?? 0;
-      // console.log('scopenum', scopeNum);
-      const matchingPbIndex =
-        schema.scopes.find(scope => scope.pbNum === scopeNum)?.index ?? -1;
-      let previousPbIndex = -1;
-      // console.log('matching index', matchingPbIndex);
-      if (matchingPbIndex > 0) {
-        previousPbIndex =
-          schema.scopes.find(scope => scope.pbNum === scopeNum - 1)?.index ??
-          -1;
-      } else {
-        previousPbIndex = 0;
-      }
-      // console.log('index', index);
-      // console.log('previndex', previousPbIndex);
-      if (index !== previousPbIndex + 1) {
-        // console.log('header', index, "isn't formatted");
-        //If our pb header isn't directly under the previous pagebreak
-        notebook?.content?.widgets
-          .filter(
-            (searchCell, searchIndex) =>
-              searchCell.model.type === 'code' &&
-              searchIndex > previousPbIndex &&
-              searchIndex < matchingPbIndex
-          )
-          .forEach(cellToMove => {
-            console.log('moving cells', cellToMove.model.id);
-            // const findIndex = notebook.content.widgets.findIndex(
-            //   searchCell => searchCell.model.id === cellToMove.model.id
-            // );
-            // notebook.content.moveCell(findIndex, index + 1);
-            // cellToMove.update();
-          });
-        didModify = true;
-      }
-    }
-  });
-  return didModify;
-}
+// function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {
+//   let didModify = false;
+//   notebook?.content?.widgets?.forEach((cell, index) => {
+//     if (
+//       cell.model.getMetadata('pagebreakheader') &&
+//       cell.model.type === 'markdown'
+//     ) {
+//       // console.log('index', index, 'id', cell.model.id);
+//       // console.log('cellstoscopes', schema.cellsToScopes);
+//       const scopeNum = schema.cellsToScopes?.[cell.model.id] ?? 0;
+//       // console.log('scopenum', scopeNum);
+//       const matchingPbIndex =
+//         schema.scopes.find(scope => scope.pbNum === scopeNum)?.index ?? -1;
+//       let previousPbIndex = -1;
+//       // console.log('matching index', matchingPbIndex);
+//       if (matchingPbIndex > 0) {
+//         previousPbIndex =
+//           schema.scopes.find(scope => scope.pbNum === scopeNum - 1)?.index ??
+//           -1;
+//       } else {
+//         previousPbIndex = 0;
+//       }
+//       // console.log('index', index);
+//       // console.log('previndex', previousPbIndex);
+//       if (index !== previousPbIndex + 1) {
+//         // console.log('header', index, "isn't formatted");
+//         //If our pb header isn't directly under the previous pagebreak
+//         notebook?.content?.widgets
+//           .filter(
+//             (searchCell, searchIndex) =>
+//               searchCell.model.type === 'code' &&
+//               searchIndex > previousPbIndex &&
+//               searchIndex < matchingPbIndex
+//           )
+//           .forEach(cellToMove => {
+//             console.log('moving cells', cellToMove.model.id);
+//             // const findIndex = notebook.content.widgets.findIndex(
+//             //   searchCell => searchCell.model.id === cellToMove.model.id
+//             // );
+//             // notebook.content.moveCell(findIndex, index + 1);
+//             // cellToMove.update();
+//           });
+//         didModify = true;
+//       }
+//     }
+//   });
+//   return didModify;
+// }
 
-export { buildNotebookSchema, orderCells, sendSchema };
+export { buildNotebookSchema, sendSchema };
