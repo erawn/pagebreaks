@@ -1,14 +1,13 @@
-import pytest
-from IPython.terminal.interactiveshell import TerminalInteractiveShell
-from hypothesis import given
-from hypothesis.strategies import text, lists
-import pagebreaks_ip
 import ast
-from pprint import pprint
-import expecttest
-
 import sys
+from pprint import pprint
 
+import expecttest
+import pagebreaks_ip
+import pytest
+from hypothesis import given
+from hypothesis.strategies import lists, text
+from IPython.terminal.interactiveshell import TerminalInteractiveShell
 
 # data = pagebreak.astWalkData(1, {1:pagebreak.trackedNames(),2: pagebreak.trackedNames()},{1:["asf", "f"],2:["foo"]}, True)
 
@@ -22,6 +21,7 @@ class Test_AST:
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """
@@ -58,6 +58,7 @@ print(f())"""
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """
@@ -81,6 +82,7 @@ n.a = 4
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """
@@ -110,6 +112,7 @@ n.f(a)
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """
@@ -136,6 +139,7 @@ f()
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """
@@ -156,6 +160,7 @@ for i in range(3):
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
+                isLineMagic=False
             )
         )
         code = """

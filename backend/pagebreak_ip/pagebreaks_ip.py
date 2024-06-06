@@ -35,6 +35,7 @@ class astWalkData:
     currentContext: int
     userDefinedVariables: set[str]  # the variables we've defined so far in this scope
     exportedVariables: dict[int, set[str]]  # the variables exported from each scope
+    isLineMagic: bool
 
 
 def transformName(name: str, context: int, export: bool = False):
@@ -217,7 +218,13 @@ class PagebreaksASTTransformer(baseASTTransform):
         dump = ast.dump(node, indent=4)
         if "pb_update" in dump:
             return node
+        if "attr='run_line_magic'" in dump:
+            specialMagics = ["Constant(value='store')"]
+            if any(magic in dump for magic in specialMagics):
+                data.isLineMagic = True
+                # print("found line magic")
         logging.info(dump)
+        # print(dump)
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
@@ -287,6 +294,11 @@ class PagebreaksASTTransformer(baseASTTransform):
                 id=transformName(node.id, data.currentContext), ctx=node.ctx
             )
 
+        return node
+    def visit_Constant(self, node, data: astWalkData):
+        if node.value in data.userDefinedVariables:
+            return ast.Constant(value=transformName(node.value,data.currentContext))
+        self.generic_visit(node, data)
         return node
 
     # we dont want to touch anything in import statements
@@ -363,8 +375,9 @@ class Pagebreak(object):
         self.exportVariableNames: dict[str, str] = {}
 
     def pre_run_cell(self, info: ExecutionInfo):
-        # logging.info("pre run")
-        # logging.info(info)
+        logging.info("pre run")
+        logging.info(info)
+        # print(info)
         # set the current context
         if self.magics is None:
             logging.info("magics error")
@@ -422,6 +435,7 @@ class Pagebreak(object):
                 currentContext=currentContext,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables=cleanedScopeList,
+                isLineMagic=False
             )
         )
         logging.info("setting data:" + str(cleanedScopeList) + str(currentContext))
