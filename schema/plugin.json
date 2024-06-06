@@ -19,8 +19,8 @@
         "command": "toolbar-button:add-pagebreak"
       },
       {
-        "name": "render-markdows-cell",
-        "command": "toolbar-button:render-markdown-cell"
+        "name": "run-pagebreak",
+        "command": "toolbar-button:run-pagebreak"
       }
     ]
   }

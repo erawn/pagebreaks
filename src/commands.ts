@@ -1,27 +1,87 @@
 // import { IEditorServices } from '@jupyterlab/codeeditor';
 import { JupyterFrontEnd } from '@jupyterlab/application';
-import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
+import { ISessionContextDialogs } from '@jupyterlab/apputils';
+import {
+  INotebookTracker,
+  NotebookActions,
+  NotebookPanel
+} from '@jupyterlab/notebook';
 import { LabIcon } from '@jupyterlab/ui-components';
+import addPagebreakIconStr from '../style/create-icon.svg';
 import '../style/index.css';
+import runPagebreakIconStr from '../style/run-pagebreak-icon.svg';
+import { schemaManager } from './schemaManager';
+import { findHeaderandFooter, findScopeNumber } from './utils';
 function addCommands(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
-  updateCallback: CallableFunction
+  updateCallback: CallableFunction,
+  schemaManager: schemaManager,
+  sessionDialogs: ISessionContextDialogs
 ) {
   const { commands } = app;
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const addPagebreakIconStr = require('../style/create-icon.svg') as string;
+  const runPagebreakIcon = new LabIcon({
+    name: 'ui-components:run-pagebreak',
+    svgstr: runPagebreakIconStr
+  });
   const addPagebreakIcon = new LabIcon({
     name: 'ui-components:add-pagebreak',
     svgstr: addPagebreakIconStr
+  });
+
+  commands.addCommand('toolbar-button:run-pagebreak', {
+    icon: runPagebreakIcon,
+    caption: 'Run Entire Pagebreak',
+    execute: () => {
+      console.log('run pagebreak');
+      const notebookPanel = notebookTracker.currentWidget;
+      const notebook = notebookPanel?.content;
+      if (!notebook?.model) {
+        return;
+      }
+      console.log('start');
+      const activeCell = notebook.activeCell;
+      const scopeNum = findScopeNumber(
+        activeCell,
+        schemaManager.previousSchema
+      );
+      const cellsToRun = notebook.widgets.filter(
+        cell => findScopeNumber(cell, schemaManager.previousSchema) === scopeNum
+      );
+      console.log(cellsToRun);
+      NotebookActions.runCells(
+        notebook,
+        cellsToRun,
+        notebookPanel?.sessionContext,
+        sessionDialogs
+      );
+
+      // notebook.update();
+      // updateCallback();
+      console.log('finish');
+    },
+    isVisible: () => {
+      const scopeNum = findScopeNumber(
+        notebookTracker.activeCell,
+        schemaManager.previousSchema
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [, , headerIndex, footerIndex] = findHeaderandFooter(
+        scopeNum,
+        notebookTracker?.currentWidget?.content,
+        schemaManager?.previousSchema
+      );
+      if (headerIndex !== -1 && footerIndex !== -1) {
+        return true;
+      }
+      return false;
+    }
   });
 
   commands.addCommand('toolbar-button:add-pagebreak', {
     icon: addPagebreakIcon,
     caption: 'Make a new Pagebreak',
     execute: () => {
-      console.log('Pagebreak Add Call!');
       const notebookPanel = app.shell.currentWidget as NotebookPanel;
       const notebook = notebookPanel.content;
       if (!notebook.model) {

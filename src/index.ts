@@ -4,6 +4,7 @@ import {
   LabShell
 } from '@jupyterlab/application';
 // import { IEditorServices } from '@jupyterlab/codeeditor';
+import { ISessionContextDialogs } from '@jupyterlab/apputils';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
@@ -24,7 +25,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
   activate: (
     app: JupyterFrontEnd,
     notebookTracker: INotebookTracker,
-    settingRegistry: ISettingRegistry | null
+    settingRegistry: ISettingRegistry | null,
+    sessionDialogs: ISessionContextDialogs
   ) => {
     console.log('JupyterLab extension pagebreaks is activated!');
 
@@ -32,9 +34,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     let eventHandlers: pagebreakEventHandlers | null = null;
 
-    addCommands(app, notebookTracker, () => {
-      updatePagebreak(app, manager);
-    });
+    addCommands(
+      app,
+      notebookTracker,
+      () => {
+        updatePagebreak(app, manager);
+      },
+      manager,
+      sessionDialogs
+    );
 
     app.formatChanged.connect(() => {
       console.log('Format CHANGED');
@@ -55,6 +63,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
       if (notebookTracker.currentWidget?.content.isVisible) {
         console.log('Focused');
+        notebookTracker.currentWidget.activate();
+        notebookTracker.currentWidget.content.node.focus();
         updatePagebreak(app, manager);
         clearInterval(startupInterval);
         addVariableListWidget(notebookTracker, manager);
@@ -193,7 +203,7 @@ function updatePagebreak(
   notebookIn?: NotebookPanel
 ) {
   const notebook = (app.shell?.currentWidget as NotebookPanel) ?? notebookIn;
-  cleanNbTypes(notebook.content);
+  cleanNbTypes(notebook?.content);
   const schema = buildNotebookSchema(notebook);
   // if (orderCells(notebook, schema)) {
   //   schema = buildNotebookSchema(notebook);
