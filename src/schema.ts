@@ -113,7 +113,8 @@ function buildNotebookSchema(notebook: NotebookPanel) {
         ...prev,
         ...cur
       })),
-    scopes: scopeList
+    scopes: scopeList,
+    cellList: cellList
   };
 }
 function sendSchema(

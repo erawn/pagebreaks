@@ -22,6 +22,7 @@ type PagebreakInternalSchema = {
     [x: number]: string[];
   };
   scopes: PagebreakScopeList;
+  cellList: PagebreakSchema;
 };
 export {
   IPagebreakCell,

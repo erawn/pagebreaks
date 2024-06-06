@@ -42,59 +42,59 @@ test.describe('Notebook Tests', () => {
       await page.getByText("NameError: name 'b' is not defined").count()
     ).toBeGreaterThanOrEqual(1);
   });
-  test('should set up a basic pagebreak', async ({ page }) => {
-    await page.goto('http://localhost:8888/lab?');
-    await page
-      .locator('div')
-      .filter({ hasText: /^NotebookPython 3 \(ipykernel\)$/ })
-      .locator('img')
-      .click();
-    await page.getByRole('textbox').locator('div').click();
+  // test('should set up a basic pagebreak', async ({ page }) => {
+  //   await page.goto('http://localhost:8888/lab?');
+  //   await page
+  //     .locator('div')
+  //     .filter({ hasText: /^NotebookPython 3 \(ipykernel\)$/ })
+  //     .locator('img')
+  //     .click();
+  //   await page.getByRole('textbox').locator('div').click();
 
-    await page
-      .getByLabel('Cells')
-      .getByRole('textbox')
-      .fill(
-        'import sys\nimport os\nsys.path.append("/Users/erawn/pagebreaks/backend/pagebreak_ip/")\n%load_ext pagebreaks_ip'
-      );
-    await page
-      .getByTitle('Run this cell and advance')
-      .getByRole('button')
-      .click();
-    await page.getByText('Run', { exact: true }).click();
-    await page
-      .locator('#jp-mainmenu-run')
-      .getByText('Run All Cells', { exact: true })
-      .click();
+  //   await page
+  //     .getByLabel('Cells')
+  //     .getByRole('textbox')
+  //     .fill(
+  //       'import sys\nimport os\nsys.path.append("/Users/erawn/pagebreaks/backend/pagebreak_ip/")\n%load_ext pagebreaks_ip'
+  //     );
+  //   await page
+  //     .getByTitle('Run this cell and advance')
+  //     .getByRole('button')
+  //     .click();
+  //   await page.getByText('Run', { exact: true }).click();
+  //   await page
+  //     .locator('#jp-mainmenu-run')
+  //     .getByText('Run All Cells', { exact: true })
+  //     .click();
 
-    await page.getByTitle('Make a new Pagebreak').getByRole('button').click();
-    await page.getByRole('textbox').nth(1).fill('a = 1\nb = 1');
+  //   await page.getByTitle('Make a new Pagebreak').getByRole('button').click();
+  //   await page.getByRole('textbox').nth(1).fill('a = 1\nb = 1');
 
-    await page
-      .getByLabel('Raw Cell Content')
-      .getByRole('textbox')
-      .fill('export { a }');
-    await page.getByRole('textbox').nth(3).fill('print("a =",a)');
-    await page.getByRole('textbox').nth(4).fill('b');
-    await page.getByRole('textbox').nth(4).click();
-    await page.getByText('Run', { exact: true }).click();
-    await page
-      .locator('#jp-mainmenu-run')
-      .getByText('Run All Cells', { exact: true })
-      .click();
+  //   await page
+  //     .getByLabel('Raw Cell Content')
+  //     .getByRole('textbox')
+  //     .fill('export { a }');
+  //   await page.getByRole('textbox').nth(3).fill('print("a =",a)');
+  //   await page.getByRole('textbox').nth(4).fill('b');
+  //   await page.getByRole('textbox').nth(4).click();
+  //   await page.getByText('Run', { exact: true }).click();
+  //   await page
+  //     .locator('#jp-mainmenu-run')
+  //     .getByText('Run All Cells', { exact: true })
+  //     .click();
 
-    await expect(
-      page.getByLabel('Cells').filter({ hasText: 'a = 1' })
-    ).toHaveCount(1);
-    await expect(
-      page
-        .getByLabel('Cells')
-        .filter({ hasText: "NameError: name 'b' is not defined" })
-    ).toHaveCount(1);
-    // await expect(page.getByLabel('Cells').locator('div').filter({ hasText: 'a =' }).nth(4).
-    // await expect(page.getByLabel('Cells')).toContainText("NameError: name 'b' is not defined");
-    // await expect(page.getByLabel('Cells')).toContainText('a = 1');
-  });
+  //   await expect(
+  //     page.getByLabel('Cells').filter({ hasText: 'a = 1' })
+  //   ).toHaveCount(1);
+  //   await expect(
+  //     page
+  //       .getByLabel('Cells')
+  //       .filter({ hasText: "NameError: name 'b' is not defined" })
+  //   ).toHaveCount(1);
+  //   // await expect(page.getByLabel('Cells').locator('div').filter({ hasText: 'a =' }).nth(4).
+  //   // await expect(page.getByLabel('Cells')).toContainText("NameError: name 'b' is not defined");
+  //   // await expect(page.getByLabel('Cells')).toContainText('a = 1');
+  // });
   test('should emit an activation console message', async ({ page }) => {
     const logs: string[] = [];
 

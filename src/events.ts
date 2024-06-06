@@ -593,7 +593,7 @@ export class pagebreakEventHandlers {
     const sourceElements =
       notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [isValid] = this.isValidDrop(targetWidget, sourceElements);
+    const [isValid] = this.isValidDrop(targetWidget, sourceElements, isBottom);
     if (isValid) {
       // console.log('IsBottom', isBottom);
       if (isBottom) {
@@ -606,7 +606,8 @@ export class pagebreakEventHandlers {
 
   isValidDrop(
     targetWidget: Cell,
-    sourceElements: HTMLCollectionOf<Element>
+    sourceElements: HTMLCollectionOf<Element>,
+    isBottom: boolean
   ): [boolean, boolean] {
     //isValid, isPagebreak
     //search for header and footer
@@ -634,8 +635,11 @@ export class pagebreakEventHandlers {
     }
     //if we're dragging a full pagebreak
     if (header !== -1 && footer !== -1) {
-      //only drop in valid locations
-      if (targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG)) {
+      //only drop in valid locations (headers or bottom footer)
+      if (
+        targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG) ||
+        (isBottom && targetWidget.node.classList.contains(PAGEBREAK_CELL_TAG))
+      ) {
         return [true, true];
       } else {
         return [false, true];
@@ -676,15 +680,18 @@ export class pagebreakEventHandlers {
 
     //PAGEBREAK CHANGE: check if the source and target are valid
     let index = this.findCell(target, notebook);
+    let isBottom = false;
     if (index === -1) {
       index = notebook.widgets.length - 1;
+      isBottom = true;
     }
     const targetWidget = notebook.widgets[index];
     const sourceElements =
       notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
     const [isValid, isPagebreak] = this.isValidDrop(
       targetWidget,
-      sourceElements
+      sourceElements,
+      isBottom
     );
     if (!isValid) {
       if (this._notebook.selectedCells.length > 1) {

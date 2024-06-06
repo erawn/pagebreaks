@@ -13,6 +13,12 @@
   },
   "additionalProperties": false,
   "jupyter.lab.toolbars": {
+    "Notebook": [
+      {
+        "name": "list-pagebreak-variables",
+        "command": "toolbar:list-variables"
+      }
+    ],
     "Cell": [
       {
         "name": "add-pagebreak",

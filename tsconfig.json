@@ -16,8 +16,10 @@
     "outDir": "lib",
     "rootDir": "src",
     "strict": true,
+    "sourceMap": true,
     "strictNullChecks": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "types": ["node", "jest"]
   },
-  "include": ["src/*"]
+  "include": ["src/**/*"]
 }

@@ -13,6 +13,7 @@ import { pagebreakEventHandlers } from './events';
 import { buildNotebookSchema, orderCells, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
+import { addVariableListWidget } from './variableListToolbar';
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'pagebreaks:plugin',
   description: 'A JupyterLab extension.',
@@ -44,15 +45,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (widget.isVisible) {
           if (widget instanceof NotebookPanel) {
             updatePagebreak(app, manager, widget);
+            widget.activate();
+            widget.content.activate();
           }
         }
       }
       console.log('Waiting To Focus...');
-      const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
-      if (elements.length > 0) {
+      // const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
+      if (notebookTracker.currentWidget?.content.isVisible) {
         console.log('Focused');
         updatePagebreak(app, manager);
         clearInterval(startupInterval);
+        addVariableListWidget(notebookTracker, manager);
       }
     }, 100);
     notebookTracker.restored.then(() => {

@@ -72,3 +72,9 @@
   /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
   border-bottom-width: 2px;
 }
+
+.jp-pb-variableList {
+  :hover {
+    background: var(--jp-layout-color1);
+  }
+}
