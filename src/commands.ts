@@ -6,7 +6,7 @@ import {
   NotebookActions,
   NotebookPanel
 } from '@jupyterlab/notebook';
-import { LabIcon } from '@jupyterlab/ui-components';
+import { LabIcon, deleteIcon } from '@jupyterlab/ui-components';
 import addPagebreakIconStr from '../style/create-icon.svg';
 import '../style/index.css';
 import runPagebreakIconStr from '../style/run-pagebreak-icon.svg';
@@ -27,6 +27,68 @@ function addCommands(
   const addPagebreakIcon = new LabIcon({
     name: 'ui-components:add-pagebreak',
     svgstr: addPagebreakIconStr
+  });
+
+  // {
+  //   "name": "delete-pagebreak",
+  //   "command": "toolbar-button:delete-pagebreak"
+  // },
+  commands.addCommand('toolbar-button:merge-pagebreak', {
+    icon: deleteIcon,
+    caption: 'Merge with Pagebreak Above',
+    execute: () => {
+      console.log('merge pagebreak');
+      const notebookPanel = notebookTracker.currentWidget;
+      const notebook = notebookPanel?.content;
+      if (!notebook?.model) {
+        return;
+      }
+      const scopeNum = findScopeNumber(
+        notebookTracker.activeCell,
+        schemaManager.previousSchema
+      );
+      if (scopeNum <= 0) {
+        return;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [srcHeader, srcFooter, srcHeaderIndex, srcFooterIndex] =
+        findHeaderandFooter(
+          scopeNum,
+          notebookTracker?.currentWidget?.content,
+          schemaManager?.previousSchema
+        );
+      const [, , , destFooterIndex] = findHeaderandFooter(
+        scopeNum - 1,
+        notebookTracker?.currentWidget?.content,
+        schemaManager?.previousSchema
+      );
+      const numCellsToMove = srcFooterIndex - srcHeaderIndex - 1;
+
+      notebook.model.sharedModel.transact(() => {
+        notebook.moveCell(srcHeaderIndex + 1, destFooterIndex, numCellsToMove);
+        for (const source of [srcHeader, srcFooter]) {
+          source ? notebook.model?.deletedCells.push(source.model.id) : {};
+          const index = destFooterIndex + numCellsToMove + 1;
+          notebook.model?.sharedModel.deleteCell(index);
+        }
+        notebook.deselectAll();
+      });
+    },
+    isVisible: () => {
+      if (
+        notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
+        notebookTracker.activeCell?.model.getMetadata('pagebreakheader')
+      ) {
+        const scopeNum = findScopeNumber(
+          notebookTracker.activeCell,
+          schemaManager.previousSchema
+        );
+        if (scopeNum > 0) {
+          return true;
+        }
+      }
+      return false;
+    }
   });
 
   commands.addCommand('toolbar-button:run-pagebreak', {

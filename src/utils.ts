@@ -75,4 +75,20 @@ function cleanNbTypes(notebook: Notebook) {
   notebook?.activate();
 }
 
-export { cleanNbTypes, findHeaderandFooter, findScopeNumber };
+function ensurePBCellsAreUndeleteable(notebook: Notebook) {
+  notebook?.widgets?.forEach((cell, index) => {
+    if (
+      cell?.model.getMetadata('pagebreak') ||
+      cell?.model.getMetadata('pagebreakheader')
+    ) {
+      cell?.model.setMetadata('deletable', false);
+    }
+  });
+}
+
+export {
+  cleanNbTypes,
+  ensurePBCellsAreUndeleteable,
+  findHeaderandFooter,
+  findScopeNumber
+};

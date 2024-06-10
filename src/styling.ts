@@ -16,6 +16,7 @@ function tagNotebookCells(
   ) {
     return;
   }
+  console.log('styling cells');
   const activeCellScopeNum = notebook?.content?.activeCell
     ? findScopeNumber(notebook?.content?.activeCell, schema)
     : -1;

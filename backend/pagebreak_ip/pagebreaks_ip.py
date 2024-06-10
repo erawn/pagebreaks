@@ -4,6 +4,7 @@ import inspect
 import itertools
 import logging
 import logging.handlers
+import os
 import re
 import sys
 import typing
@@ -18,8 +19,9 @@ from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
 from pagebreak_magic import pagebreak_magics
 
-logger = logging.getLogger(__name__).addHandler(logging.StreamHandler(sys.stdout))
+DEBUG = False
 
+logger = logging.getLogger("pagebreaks")
 
 # class NameAdder(ast.NodeTransformer):
 
@@ -61,7 +63,7 @@ class baseASTTransform(ast.NodeTransformer):
             data = self.storedData
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        # logging.info("visit data:", data)
+        # logger.info("visit data:", data)
         return visitor(node, copy.deepcopy(data))
 
     def generic_visit(self, node, data):
@@ -148,13 +150,13 @@ class DefinitionsFinder(baseASTTransform):
     def visit_Global(self, node: ast.Global, data=None):
         for tar in node.names:
             self.globalKeywords.add(tar)
-        logging.info("added globals" + str(self.globalKeywords))
+        logger.info("added globals" + str(self.globalKeywords))
         return node
 
     def visit_Nonlocal(self, node: ast.Nonlocal, data=None):
         for tar in node.names:
             self.nonlocalKeywords.add(tar)
-        logging.info("added nonlocals" + str(self.nonlocalKeywords))
+        logger.info("added nonlocals" + str(self.nonlocalKeywords))
         return node
 
     def getDefinitionsAtNode(self, node) -> set[str]:
@@ -207,13 +209,13 @@ class PagebreaksASTTransformer(baseASTTransform):
         # if not hasattr(node, "_attributes"):
         #     node._attributes = ("",)
         if data is None:
-            logging.info(
+            logger.info(
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
         # if node is None:
         #     print("node is none")
-        #     logging.info("Node is none" + str(data))
+        #     logger.info("Node is none" + str(data))
         #     return node
         dump = ast.dump(node, indent=4)
         if "pb_update" in dump:
@@ -223,25 +225,25 @@ class PagebreaksASTTransformer(baseASTTransform):
             if any(magic in dump for magic in specialMagics):
                 data.isLineMagic = True
                 # print("found line magic")
-        logging.info(dump)
+        logger.info(dump)
         # print(dump)
         self.currentExportSet.clear()  # wipe the export set every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
-        logging.info("New Definitions Found:" + str(trackedNames))
-        logging.info(trackedNames)
+        logger.info("New Definitions Found:" + str(trackedNames))
+        logger.info(trackedNames)
 
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
         self.userVariables.update({data.currentContext: savedVariables})
 
-        logging.info("saved variables" + str(self.userVariables))
+        logger.info("saved variables" + str(self.userVariables))
         data.userDefinedVariables.update(savedVariables)
         self.generic_visit(node, data)
         return node
 
     def visit_Name(self, node, data: astWalkData):
-        logging.info("visit name export variables" + str(data.exportedVariables))
+        logger.info("visit name export variables" + str(data.exportedVariables))
         # check if variable is exported from another context
         for context, exportedVariables in data.exportedVariables.items():
             if (
@@ -250,7 +252,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                 and context
                 < data.currentContext  # only export variables from earlier contexts
             ):
-                logging.info(
+                logger.info(
                     "changing name ["
                     + node.id
                     + "] to ["
@@ -283,7 +285,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                     id=transformName(node.id, context, export=True), ctx=node.ctx
                 )
         if node.id in data.userDefinedVariables:
-            logging.info(
+            logger.info(
                 "changing name ["
                 + node.id
                 + "] to ["
@@ -327,7 +329,7 @@ class PagebreaksASTTransformer(baseASTTransform):
         defFinder = DefinitionsFinder()
         newDefinitions = defFinder.getDefinitionsAtNode(node)
         # check if any defs are overwriting exported variables
-        logging.info(
+        logger.info(
             "HandleNewBlock:" + str(node) + ", with definitions: " + str(newDefinitions)
         )
 
@@ -374,16 +376,17 @@ class Pagebreak(object):
         # self.exportedVariables: dict[int, set[str]] = {}
         self.exportVariableNames: dict[str, str] = {}
 
+
     def pre_run_cell(self, info: ExecutionInfo):
-        logging.info("pre run")
-        logging.info(info)
+        logger.info("pre run")
+        logger.info(info)
         # print(info)
         # set the current context
         if self.magics is None:
-            logging.info("magics error")
+            logger.info("magics error")
             return
         if self.magics.schema is None:
-            logging.info("schema error")
+            logger.info("schema error")
             return
         # grab our data structure from the front end
         schema: dict = self.magics.schema
@@ -421,7 +424,7 @@ class Pagebreak(object):
         # print("scopelist", scopeList)
         # print("cleanedscopeLIst", cleanedScopeList)
         if len(duplicateNames) > 0:
-            # logging.info("duplicateNames", duplicateNames)
+            # logger.info("duplicateNames", duplicateNames)
             warnings.warn(
                 "(Pagebreaks) Duplicate Exported Variables: '"
                 + " ,".join(duplicateNames)
@@ -438,7 +441,7 @@ class Pagebreak(object):
                 isLineMagic=False
             )
         )
-        logging.info("setting data:" + str(cleanedScopeList) + str(currentContext))
+        logger.info("setting data:" + str(cleanedScopeList) + str(currentContext))
 
         # cache exported variables
         cache = {
@@ -461,7 +464,7 @@ class Pagebreak(object):
                 localName = transformName(name, scope, False)
                 globalName = transformName(name, scope, True)
                 exportVariableNames[localName] = globalName
-        logging.info("exportvariablenames" + str(exportVariableNames))
+        logger.info("exportvariablenames" + str(exportVariableNames))
 
         ## Clear Exported Variables if we aren't actively exporting them (they were removed from the list)
         globalNamesToDelete = [
@@ -471,7 +474,7 @@ class Pagebreak(object):
             & (name not in exportVariableNames.values())
         ]
         if len(globalNamesToDelete) > 0:
-            logging.info("deleting" + str(globalNamesToDelete))
+            logger.info("deleting" + str(globalNamesToDelete))
             for name in globalNamesToDelete:
                 self.shell.user_ns.pop(name, None)
 
@@ -481,12 +484,12 @@ class Pagebreak(object):
             localValue = self.shell.user_ns.get(localName, None)
             if localValue is not None:
                 exportVariables[globalName] = copy.deepcopy(localValue)
-        logging.info("push export variables" + str(exportVariables))
+        logger.info("push export variables" + str(exportVariables))
         self.shell.push(exportVariables)
         self.exportVariableNames = exportVariableNames
 
     def post_run_cell(self, result: ExecutionResult):
-        # logging.info("post run")
+        # logger.info("post run")
         if not result.success:
             return
 
@@ -503,7 +506,7 @@ class Pagebreak(object):
                             namesToDrop.append(globalName)
                 else:
                     if localVar != globalVar:
-                        logging.info("found unequal variable" + localName + globalName)
+                        logger.info("found unequal variable" + localName + globalName)
                         namesToDrop.append(globalName)
 
         if len(namesToDrop) > 0:
@@ -534,7 +537,8 @@ class Pagebreak(object):
                 ).with_traceback(None)
             except:
                 self.shell.showtraceback()
-
+            for handler in logger.handlers:
+                handler.flush()
     def load_metadata(self):
         return
 
@@ -547,7 +551,13 @@ _pb_magics: pagebreak_magics | None = None
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
+    os.makedirs(os.path.dirname("./.pagebreaks/pagebreaks.log"), exist_ok=True)
     logging.basicConfig(filename="pagebreaks.log", level=logging.INFO)
+    handler = logging.FileHandler('./.pagebreaks/pagebreaks.log')
+    # if DEBUG:
+    #     logging.getLogger("pagebreaks").addHandler(logging.StreamHandler(sys.stdout))
+    logging.getLogger("pagebreaks").addHandler(handler)
+
     global _pb
     _pb = Pagebreak(ip)
     ip.run_line_magic("lsmagic", "")

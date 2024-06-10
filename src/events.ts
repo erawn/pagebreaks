@@ -23,6 +23,7 @@ const NB_CELL_CLASS = 'jp-Notebook-cell';
 const DRAG_THRESHOLD = 5;
 const DRAG_IMAGE_CLASS = 'jp-dragImage';
 
+const MARKDOWN_COLLAPSED_CLASS = 'jp-MarkdownHeadingCollapsed';
 /**
  * The class name added to singular drag images
  */
@@ -543,10 +544,19 @@ export class pagebreakEventHandlers {
               //   ':',
               //   footerIndex
               // );
+              // this._notebook.activeCell.coll
               //select whole pagebreak
-              this._notebook.deselectAll();
-              this._notebook.activeCellIndex = footerIndex;
-              this._notebook.extendContiguousSelectionTo(headerIndex);
+              const headerCell = this._notebook.widgets[headerIndex];
+              if (
+                headerCell instanceof MarkdownCell &&
+                (headerCell as MarkdownCell).headingCollapsed
+              ) {
+                console.log('collapsed');
+              } else {
+                this._notebook.deselectAll();
+                this._notebook.activeCellIndex = footerIndex;
+                this._notebook.extendContiguousSelectionTo(headerIndex);
+              }
             }
           }
           this.startDrag(data.index, event.clientX, event.clientY);
@@ -593,7 +603,12 @@ export class pagebreakEventHandlers {
     const sourceElements =
       notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [isValid] = this.isValidDrop(targetWidget, sourceElements, isBottom);
+    const [isValid] = this.isValidDrop(
+      targetWidget,
+      sourceElements,
+      isBottom,
+      notebook
+    );
     if (isValid) {
       // console.log('IsBottom', isBottom);
       if (isBottom) {
@@ -607,12 +622,31 @@ export class pagebreakEventHandlers {
   isValidDrop(
     targetWidget: Cell,
     sourceElements: HTMLCollectionOf<Element>,
-    isBottom: boolean
+    isBottom: boolean,
+    notebook: Notebook
   ): [boolean, boolean] {
     //isValid, isPagebreak
     //search for header and footer
+
+    let collapsedIndex = -1;
+    for (let i = 0; i < sourceElements.length; i++) {
+      const elem = sourceElements.item(i);
+      if (elem?.classList.contains(MARKDOWN_COLLAPSED_CLASS)) {
+        // console.log('collapsed source');
+        collapsedIndex = this.findCell(elem as HTMLElement, notebook);
+      }
+    }
+
     let header = -1;
     let footer = -1;
+
+    if (collapsedIndex !== -1) {
+      console.log('collapsed Dragover');
+      // const headerCell = notebook.widgets[collapsedIndex];
+      //the actual values dont matter as long as they aren't -1
+      header = 0;
+      footer = 0;
+    }
     for (let i = 0; i < sourceElements.length; i++) {
       const elem = sourceElements.item(i);
       if (elem?.classList.contains(PAGEBREAK_HEADER_TAG)) {
@@ -622,8 +656,13 @@ export class pagebreakEventHandlers {
         footer = i;
       }
     }
+
     //if we're only dragging a header or footer alone
-    if ((header !== -1 || footer !== -1) && sourceElements.length === 1) {
+    if (
+      (header !== -1 || footer !== -1) &&
+      sourceElements.length === 1 &&
+      collapsedIndex === -1
+    ) {
       return [false, true];
     }
     //if we're dragging a header or footer with other cells (invalid!)
@@ -638,8 +677,10 @@ export class pagebreakEventHandlers {
       //only drop in valid locations (headers or bottom footer)
       if (
         targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG) ||
+        targetWidget.node.classList.contains(MARKDOWN_COLLAPSED_CLASS) ||
         (isBottom && targetWidget.node.classList.contains(PAGEBREAK_CELL_TAG))
       ) {
+        console.log('valid drop');
         return [true, true];
       } else {
         return [false, true];
@@ -691,7 +732,8 @@ export class pagebreakEventHandlers {
     const [isValid, isPagebreak] = this.isValidDrop(
       targetWidget,
       sourceElements,
-      isBottom
+      isBottom,
+      notebook
     );
     if (!isValid) {
       if (this._notebook.selectedCells.length > 1) {

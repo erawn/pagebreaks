@@ -1,10 +1,18 @@
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
+import _ from 'lodash';
 import { schemaManager } from './schemaManager';
 import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
 function buildNotebookSchema(notebook: NotebookPanel) {
+  const cells = _.cloneDeepWith(notebook.content.widgets);
+  // console.log('cells:', cells);
+  // for (const cell of cells.values()) {
+  //   console.log(cell.model.id);
+  // }
+  // console.log('cells length', cells.length);
+  // cells.forEach(cell => console.log(cell.model.metadata));
   const cellList: PagebreakSchema = [];
-  notebook?.content?.widgets?.forEach((cell, index) => {
+  cells.forEach((cell, index) => {
     if (cell.model.type === 'code') {
       const newCell: IPagebreakCell = {
         index: index,
@@ -137,7 +145,7 @@ function sendSchema(
     // Handle iopub messages
     future.onIOPub = msg => {
       // eslint-disable-next-line no-constant-condition
-      if (msg.header.msg_type !== 'status') {
+      if (msg.header.msg_type !== 'status' || true) {
         console.log(msg.content);
       }
     };

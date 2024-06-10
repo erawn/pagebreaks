@@ -17,10 +17,10 @@ export function addVariableListWidget(
   tracker: INotebookTracker,
   manager: schemaManager
 ) {
-  console.log('printing names');
-  for (const name of tracker?.currentWidget?.toolbar?.names() ?? '') {
-    console.log(name);
-  }
+  // console.log('printing names');
+  // for (const name of tracker?.currentWidget?.toolbar?.names() ?? '') {
+  //   console.log(name);
+  // }
   tracker?.currentWidget?.toolbar.insertAfter(
     'spacer',
     'variableList',

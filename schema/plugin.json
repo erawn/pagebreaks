@@ -1,14 +1,14 @@
 {
   "jupyter.lab.shortcuts": [],
-  "title": "pagebreaks",
-  "description": "pagebreaks settings.",
+  "title": "Pagebreaks",
+  "description": "Pagebreaks settings.",
   "type": "object",
   "properties": {
     "flag": {
       "type": "boolean",
-      "title": "Simple flag",
-      "description": "This is an example of a boolean setting.",
-      "default": false
+      "title": "Enable Logging?",
+      "description": "Whether to activate logging. For the study, should be checked",
+      "default": true
     }
   },
   "additionalProperties": false,
@@ -17,6 +17,10 @@
       {
         "name": "add-pagebreak",
         "command": "toolbar-button:add-pagebreak"
+      },
+      {
+        "name": "merge-pagebreak",
+        "command": "toolbar-button:merge-pagebreak"
       },
       {
         "name": "run-pagebreak",
