@@ -7,8 +7,7 @@ name = "pagebreaks_ip"
 version = "0.0.1"
 dependencies = [
     "requests",
-    "hypothesis",
-    "expecttest"
+    "loguru"
 ]
 [tool.setuptools.packages.find]
 # All the following settings are optional:

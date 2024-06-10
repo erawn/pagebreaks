@@ -2,8 +2,6 @@ import ast
 import copy
 import inspect
 import itertools
-import logging
-import logging.handlers
 import os
 import re
 import sys
@@ -17,12 +15,19 @@ from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
+from loguru import logger
 from pagebreak_magic import pagebreak_magics
 
 DEBUG = False
 
-logger = logging.getLogger("pagebreaks")
-
+logger.remove() #to remove std 
+fmt = "{time} - {name} - {level} - {message}"
+logger.add("./.pagebreaks/pagebreaks_study.log",format= fmt,serialize=True, filter=lambda record: "study" in record["extra"],enqueue=True,rotation="50 MB",compression="zip")
+logger.add("pagebreaks_debug.log",retention=3,rotation="50 MB",)
+study_logger = logger.bind(study=True)
+# logger.add()
+# logger = logging.getLogger("pagebreaks")
+# study_logger = logging.getLogger("pagebreaks_study")
 # class NameAdder(ast.NodeTransformer):
 
 #     def __init__(self):
@@ -378,8 +383,8 @@ class Pagebreak(object):
 
 
     def pre_run_cell(self, info: ExecutionInfo):
-        logger.info("pre run")
         logger.info(info)
+        study_logger.info(info)
         # print(info)
         # set the current context
         if self.magics is None:
@@ -537,8 +542,6 @@ class Pagebreak(object):
                 ).with_traceback(None)
             except:
                 self.shell.showtraceback()
-            for handler in logger.handlers:
-                handler.flush()
     def load_metadata(self):
         return
 
@@ -552,11 +555,16 @@ _pb_magics: pagebreak_magics | None = None
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
     os.makedirs(os.path.dirname("./.pagebreaks/pagebreaks.log"), exist_ok=True)
-    logging.basicConfig(filename="pagebreaks.log", level=logging.INFO)
-    handler = logging.FileHandler('./.pagebreaks/pagebreaks.log')
-    # if DEBUG:
-    #     logging.getLogger("pagebreaks").addHandler(logging.StreamHandler(sys.stdout))
-    logging.getLogger("pagebreaks").addHandler(handler)
+    # logging.basicConfig(filename="pagebreaks.log", level=logging.INFO)
+    
+
+    # study_handler = logging.handlers.RotatingFileHandler('./.pagebreaks/pagebreaks_study.log',maxBytes=50000000,backupCount=100000)
+    # study_handler.level = logging.INFO
+    # study_logger.addHandler(study_handler)
+    # handler = logging.FileHandler("pagebreak_debug.log")
+    # handler.level = logging.INFO
+    # logging.getLogger("pagebreaks").addHandler(handler)
+   
 
     global _pb
     _pb = Pagebreak(ip)

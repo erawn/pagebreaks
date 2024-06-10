@@ -11,9 +11,11 @@ from IPython.core.magic import (Magics, cell_magic, line_cell_magic,
 from IPython.core.magics.namespace import NamespaceMagics
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.utils.encoding import DEFAULT_ENCODING
+from loguru import logger
 
-logger = logging.getLogger("pagebreaks").addHandler(logging.StreamHandler(sys.stdout))
-
+study_logger = logger.bind(study=True)
+# study_logger = logging.getLogger("pagebreaks_study")
+# logger = logging.getLogger("pagebreaks")
 schema: Any = None
 
 
@@ -162,9 +164,9 @@ class pagebreak_magics(Magics):
         
         
     @cell_magic
-    def pagebreak(self, line, cell):
-        # print("defined pagebreak", line, cell)
-        return line, cell
+    def pb_log(self, line, cell):
+        study_logger.info(cell)
+        return
 
     @cell_magic
     def pb_update(self, line, cell):

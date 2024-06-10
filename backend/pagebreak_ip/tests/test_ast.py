@@ -2,11 +2,7 @@ import ast
 import sys
 from pprint import pprint
 
-import expecttest
 import pagebreaks_ip
-import pytest
-from hypothesis import given
-from hypothesis.strategies import lists, text
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 
 # data = pagebreak.astWalkData(1, {1:pagebreak.trackedNames(),2: pagebreak.trackedNames()},{1:["asf", "f"],2:["foo"]}, True)
