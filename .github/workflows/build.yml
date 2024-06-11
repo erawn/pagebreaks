@@ -35,17 +35,17 @@ jobs:
           set -eux
           jlpm run test
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Build the extension
         run: |
           set -eux
-          python -m pip install .
-
+          python -m pip install -e "."
+          jlpm build
+          jupyter labextension develop . --overwrite
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "pagebreaks.*OK"
           python -m jupyterlab.browser_check
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Package the extension
         run: |
