@@ -35,6 +35,9 @@ jobs:
           set -eux
           jlpm run test
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Build the extension
         run: |
           set -eux
@@ -50,13 +53,13 @@ jobs:
 
           pip install build
           python -m build
-          pip uninstall -y "Pagebreak" jupyterlab
+          pip uninstall -y "pagebreaks" jupyterlab
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v4
         with:
           name: extension-artifacts
-          path: dist/pagebreak*
+          path: dist/pagebreaks*
           if-no-files-found: warn
 
   test_isolated:
@@ -79,7 +82,7 @@ jobs:
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
 
-          pip install "jupyterlab>=4.0.0,<5" pagebreak*.whl
+          pip install "jupyterlab>=4.0.0,<5" pagebreaks*.whl
 
 
           jupyter labextension list
@@ -109,7 +112,7 @@ jobs:
       - name: Install the extension
         run: |
           set -eux
-          python -m pip install "jupyterlab>=4.0.0,<5" pagebreak*.whl
+          python -m pip install "jupyterlab>=4.0.0,<5" pagebreaks*.whl
 
       - name: Install dependencies
         working-directory: ui-tests
