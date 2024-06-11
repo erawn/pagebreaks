@@ -24,10 +24,12 @@ type PagebreakInternalSchema = {
   scopes: PagebreakScopeList;
   cellList: PagebreakSchema;
 };
+type pluginStatus = 'active' | 'inactive';
 export {
   IPagebreakCell,
   IPagebreakScope,
   PagebreakInternalSchema,
   PagebreakSchema,
-  PagebreakScopeList
+  PagebreakScopeList,
+  pluginStatus
 };

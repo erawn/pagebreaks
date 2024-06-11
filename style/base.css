@@ -78,3 +78,19 @@
     background: var(--jp-layout-color1);
   }
 }
+
+.jp-pb-pluginstatus-header {
+  background: var(--jp-rendermime-error-background);
+  text-align: center;
+  padding: 5px 0;
+  min-height: 40px;
+}
+
+.jp-pb-pluginstatus-maintext {
+  color: var(--jp-error-color0);
+  font-weight: bold;
+}
+
+.jp-pb-pluginstatus-bottomtext {
+  color: var(--jp-content-font-color2);
+}

@@ -11,7 +11,7 @@ import _ from 'lodash';
 import '../style/index.css';
 import { addCommands } from './commands';
 import { pagebreakEventHandlers } from './events';
-import { buildNotebookSchema, sendSchema } from './schema';
+import { buildNotebookSchema, checkIPPlugin, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
 import { cleanNbTypes, ensurePBCellsAreUndeleteable } from './utils';
@@ -115,9 +115,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const kernel = notebook?.sessionContext?.session?.kernel;
         kernel?.connectionStatusChanged.connect(slot => {
           updatePagebreak(app, notebookTracker, manager, true);
+          checkIPPlugin(notebook, manager);
         });
         notebook?.sessionContext?.connectionStatusChanged.connect(() => {
           updatePagebreak(app, notebookTracker, manager);
+          checkIPPlugin(notebook, manager);
         });
       }
     }, 100);
@@ -189,6 +191,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const notebook = app.shell?.currentWidget as NotebookPanel;
         if (notebook && notebook.isRevealed) {
           console.log('activeCellChanged CALL');
+          checkIPPlugin(notebook, manager);
+          manager.updatePluginStatusHeader(notebook);
           updatePagebreak(app, notebookTracker, manager);
           manager.eventHandlers?.update();
         }
@@ -218,6 +222,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const notebook = app.shell.currentWidget as NotebookPanel;
         if (notebook && notebook.isRevealed) {
           console.log('LabShell activeChanged CALL');
+
           updatePagebreak(app, notebookTracker, manager);
         }
       }

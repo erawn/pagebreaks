@@ -145,11 +145,51 @@ function sendSchema(
     // Handle iopub messages
     future.onIOPub = msg => {
       // eslint-disable-next-line no-constant-condition
-      if (msg.header.msg_type !== 'status' || true) {
+      if (msg.header.msg_type !== 'status') {
         console.log(msg.content);
       }
     };
     manager.future = future;
+  }
+
+  // kernelModel.execute();
+}
+function checkIPPlugin(notebook: NotebookPanel, manager: schemaManager) {
+  // console.log('send Schema');
+
+  const content: KernelMessage.IExecuteRequestMsg['content'] = {
+    code: 'print(get_ipython().extension_manager.loaded) \n',
+    silent: true,
+    store_history: false
+  };
+
+  const kernel = notebook?.sessionContext?.session?.kernel;
+  if (!kernel) {
+    console.error('Session has no kernel.');
+    return;
+  }
+
+  if (manager.statusFuture === null || manager.statusFuture.isDisposed) {
+    // console.log('sending Schema', schema);
+    const future = kernel.requestExecute(content);
+    // Handle iopub messages
+    future.onIOPub = msg => {
+      // eslint-disable-next-line no-constant-condition
+      if (msg.header.msg_type !== 'status' || true) {
+        console.log(msg.header.msg_type, msg.content);
+      }
+      if (KernelMessage.isStreamMsg(msg)) {
+        const result = msg as KernelMessage.IStreamMsg;
+        if (result.content.text.search('pagebreaks_ip') > 0) {
+          manager.setPluginStatus('active', notebook);
+          console.log('Pagebreaks_IP is active!');
+        } else {
+          manager.setPluginStatus('inactive', notebook);
+          console.log('Pagebreaks_IP is inactive!');
+        }
+      }
+    };
+    manager.statusFuture = future;
   }
 
   // kernelModel.execute();
@@ -204,4 +244,4 @@ function sendSchema(
 //   return didModify;
 // }
 
-export { buildNotebookSchema, sendSchema };
+export { buildNotebookSchema, checkIPPlugin, sendSchema };

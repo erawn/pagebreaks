@@ -6,12 +6,14 @@ import {
   NotebookActions,
   NotebookPanel
 } from '@jupyterlab/notebook';
-import { LabIcon, deleteIcon } from '@jupyterlab/ui-components';
+import { LabIcon } from '@jupyterlab/ui-components';
 import addPagebreakIconStr from '../style/create-icon.svg';
 import '../style/index.css';
+import mergeUpIconStr from '../style/merge-up-icon.svg';
 import runPagebreakIconStr from '../style/run-pagebreak-icon.svg';
 import { schemaManager } from './schemaManager';
 import { findHeaderandFooter, findScopeNumber } from './utils';
+
 function addCommands(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
@@ -28,16 +30,19 @@ function addCommands(
     name: 'ui-components:add-pagebreak',
     svgstr: addPagebreakIconStr
   });
+  const mergeUpIcon = new LabIcon({
+    name: 'ui-components:merge-pagebreak',
+    svgstr: mergeUpIconStr
+  });
 
   // {
   //   "name": "delete-pagebreak",
   //   "command": "toolbar-button:delete-pagebreak"
   // },
   commands.addCommand('toolbar-button:merge-pagebreak', {
-    icon: deleteIcon,
+    icon: mergeUpIcon,
     caption: 'Merge with Pagebreak Above',
     execute: () => {
-      console.log('merge pagebreak');
       const notebookPanel = notebookTracker.currentWidget;
       const notebook = notebookPanel?.content;
       if (!notebook?.model) {
@@ -208,7 +213,6 @@ function addCommands(
         cell.model.getMetadata('pagebreak')
       ) === undefined
   });
-
   // commands.addCommand('notebook-cells:run-and-advance', {
   //   label: args => (args.toolbar ? '' : 'Run and Advance'),
   //   caption: 'Run the selected cells and advance.',
