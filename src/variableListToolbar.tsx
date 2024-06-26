@@ -21,11 +21,14 @@ export function addVariableListWidget(
   // for (const name of tracker?.currentWidget?.toolbar?.names() ?? '') {
   //   console.log(name);
   // }
-  tracker?.currentWidget?.toolbar.insertAfter(
-    'spacer',
-    'variableList',
-    createVariableList(tracker, manager)
-  );
+  const widget = createVariableList(tracker, manager);
+  if (!tracker?.currentWidget?.toolbar.contains(widget)) {
+    tracker?.currentWidget?.toolbar.insertAfter(
+      'spacer',
+      'variableList',
+      createVariableList(tracker, manager)
+    );
+  }
 }
 function createVariableList(
   notebookTracker: INotebookTracker,

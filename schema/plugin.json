@@ -4,10 +4,16 @@
   "description": "Pagebreaks settings.",
   "type": "object",
   "properties": {
-    "flag": {
+    "enableLogging": {
       "type": "boolean",
       "title": "Enable Logging?",
-      "description": "Whether to activate logging. For the study, should be checked",
+      "description": "Whether to activate logging. For the entire study, should be checked",
+      "default": true
+    },
+    "enablePlugin": {
+      "type": "boolean",
+      "title": "Enable Pagebreaks?",
+      "description": "Whether to activate the Pagebreaks Plugin. For the second half of the study, should be checked.",
       "default": true
     }
   },

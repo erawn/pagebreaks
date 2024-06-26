@@ -21,7 +21,7 @@ test.describe('Notebook Tests', () => {
   //   await page.notebook.openByPath(`${tmpPath}/${fileName}`);
   //   await page.notebook.activate(fileName);
   // });
-  test('Create New Notebook', async ({ page, tmpPath }) => {
+  test('Open Basic_test and Run it', async ({ page, tmpPath }) => {
     await page.contents.uploadFile(
       path.resolve(__dirname, `./notebooks/${fileName}`),
       `${tmpPath}/${fileName}`

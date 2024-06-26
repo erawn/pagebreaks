@@ -9,197 +9,138 @@ import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
+import { activeManager } from './activeManager';
 import { addCommands } from './commands';
 import { pagebreakEventHandlers } from './events';
-import { buildNotebookSchema, checkIPPlugin, sendSchema } from './schema';
+import { buildNotebookSchema, sendSchema } from './schema';
 import { schemaManager } from './schemaManager';
 import { tagNotebookCells } from './styling';
 import { cleanNbTypes, ensurePBCellsAreUndeleteable } from './utils';
 import { addVariableListWidget } from './variableListToolbar';
+
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'pagebreaks:plugin',
   description: 'A JupyterLab extension.',
   autoStart: true,
-  requires: [INotebookTracker],
-  optional: [ISettingRegistry],
+  requires: [INotebookTracker, ISettingRegistry, ISessionContextDialogs],
+  optional: [],
   activate: (
     app: JupyterFrontEnd,
     notebookTracker: INotebookTracker,
-    settingRegistry: ISettingRegistry | null,
+    settingRegistry: ISettingRegistry,
     sessionDialogs: ISessionContextDialogs,
     paths: JupyterFrontEnd.IPaths
   ) => {
     console.log('JupyterLab extension pagebreaks is activated!');
     const manager = new schemaManager();
+    const isActiveManager = new activeManager();
+    if (settingRegistry) {
+      settingRegistry
+        .load(plugin.id)
+        .then(settings => {
+          console.log('pagebreaks settings loaded:', settings.composite);
+          isActiveManager.setLoggingSetting(
+            settings
+              .get('enableLogging')
+              .composite?.toString()
+              .toLowerCase() === 'true' ?? false
+          );
+          isActiveManager.setActiveSetting(
+            settings.get('enablePlugin').composite?.toString().toLowerCase() ===
+              'true' ?? false
+          );
+        })
+        .catch(reason => {
+          console.error('Failed to load settings for pagebreaks.', reason);
+        });
+      settingRegistry.pluginChanged.connect(name => {
+        console.log('settings changed', name);
+      });
+    }
 
-    // const logger = new Logger();
-    // logger.attachTransport(logObj => {
-    //   appendFileSync('logs.txt', JSON.stringify(logObj) + '\n');
-    // });
-
-    // logger.debug('I am a debug log.');
-    // logger.info('I am an info log.');
-    // logger.warn('I am a warn log with a json object:', { foo: 'bar' });
+    // const active = true;
+    notebookTracker.currentChanged.connect(() => {
+      notebookTracker.currentWidget?.sessionContext.kernelChanged.connect(
+        () => {
+          if (isActiveManager) {
+            isActiveManager.findLanguageSetting(notebookTracker);
+          }
+        }
+      );
+      if (isActiveManager) {
+        isActiveManager.findLanguageSetting(notebookTracker);
+      }
+    });
 
     addCommands(
       app,
       notebookTracker,
       () => {
-        updatePagebreak(app, notebookTracker, manager);
+        updatePagebreak(app, notebookTracker, manager, isActiveManager);
       },
       manager,
-      sessionDialogs
+      sessionDialogs,
+      isActiveManager
     );
 
-    app.formatChanged.connect(() => {
-      console.log('Format CHANGED');
-    });
-
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setInterval(async () => {
+      // console.log('checking notebook....');
+      // console.log(
+      //   'IsNOtebookActive?',
+      //   isActiveManager.checkisActive(notebookTracker)
+      // );
+      const notebook = notebookTracker.currentWidget;
+      if (notebook?.content.isVisible && notebook.isRevealed) {
+        updatePagebreak(app, notebookTracker, manager, isActiveManager);
+        //need to update this so that add pb button appears on reload for empty cell
+        const { commands } = app;
+        commands.notifyCommandChanged('toolbar-button:add-pagebreak');
+      }
+    }, 1000);
+
     const startupInterval = setInterval(async () => {
-      // for (const widget of app.shell.widgets()) {
-      //   if (widget.isVisible) {
-      //     if (widget instanceof NotebookPanel) {
-      //       updatePagebreak(app, notebookTracker, manager, false, widget);
-      //       widget.activate();
-      //       widget.content.activate();
-      //     }
-      //   }
-      // }
       console.log('Waiting To Reveal...');
       // const elements = document.getElementsByClassName('jp-pb-pagebreakCell');
       const notebook = notebookTracker.currentWidget;
       if (notebook?.content.isVisible && notebook.isRevealed) {
         console.log('Visible and Revealed');
-        // console.log('notebooks:');
-        // notebookTracker.forEach(panel => {
-        //   console.log(panel.content.widgets);
-        //   console.log(
-        //     'status',
-        //     panel.isAttached,
-        //     panel.isDisposed,
-        //     panel.isHidden,
-        //     panel.isRevealed,
-        //     panel.isVisible
-        //   );
-        // });
-        // console.log('end Notebooks');
-        // console.log('isattached', notebookTracker.currentWidget?.isAttached);
-        // console.log('current widget', notebookTracker.currentWidget);
-        // console.log(
-        //   'current widget cells',
-        //   notebookTracker.currentWidget?.content.widgets
-        // );
-        // notebook.activate();
-        // notebook.content.activate();
-        // notebook.content.node.focus();
-        // if (notebookTracker.activeCell === null) {
-        //   console.log('selecting first cell');
-        //   notebook.content.select(notebook.content.widgets[0]);
-        // }
-        // if (app.shell.currentWidget === null) {
-        //   console.log(notebookTracker.currentWidget?.id);
-        //   app.shell.activateById(notebookTracker.currentWidget?.id ?? '');
-        //   app.shell.update();
-        //   app.shell.node.focus();
-        //   app.shell.node.click();
-        // }
-        // console.log(notebookTracker.activeCell);
-        // notebookTracker.activeCell?.node.focus();
-        // notebookTracker.activeCell?.node.click();
-        // notebookTracker.activeCell?.node.dispatchEvent(new MouseEvent('click'));
-        // console.log('sending update');
-        updatePagebreak(app, notebookTracker, manager, true);
+        updatePagebreak(app, notebookTracker, manager, isActiveManager, true);
         clearInterval(startupInterval);
-        addVariableListWidget(notebookTracker, manager);
+
         const kernel = notebook?.sessionContext?.session?.kernel;
         kernel?.connectionStatusChanged.connect(slot => {
-          updatePagebreak(app, notebookTracker, manager, true);
-          checkIPPlugin(notebook, manager);
+          isActiveManager.setPluginStatus('unset', notebook);
+          updatePagebreak(app, notebookTracker, manager, isActiveManager, true);
         });
         notebook?.sessionContext?.connectionStatusChanged.connect(() => {
-          updatePagebreak(app, notebookTracker, manager);
-          checkIPPlugin(notebook, manager);
+          isActiveManager.setPluginStatus('unset', notebook);
+          updatePagebreak(app, notebookTracker, manager, isActiveManager);
         });
       }
     }, 100);
-    notebookTracker.restored.then(() => {
-      notebookTracker.currentWidget?.revealed.then(() => {
-        console.log('current widget');
-        updatePagebreak(app, notebookTracker, manager);
-      });
-      notebookTracker.activeCell?.ready.then(() => {
-        updatePagebreak(app, notebookTracker, manager);
-      });
-    });
-    // app.shell.currentChanged?.connect(() => {
-    //   console.log('currentchangedshell', app.shell.currentWidget?.isVisible);
-    //   // const notebook = app.shell?.currentWidget as NotebookPanel;
-    //   // notebook?.content?.widgets.forEach(cell => {
-    //   //   console.log(cell.model)
-    //   // })
-    //   updatePagebreak(app, notebookTracker, manager);
-    // });
-
-    // (app.shell as LabShell).currentWidget.con
-
-    // app.started.then(() => {
-    //   console.log('started CALL');
-    //   console.log('startedshell', app.shell.currentWidget?.isVisible);
-    //   // const notebook = app.shell?.currentWidget as NotebookPanel;
-    //   // console.log('cells',notebook.content.widgets.toString())
-    // });
-    // app.restored.then(() => {
-    //   console.log('restored');
-    //   console.log('restoredshell', app.shell.currentWidget?.isVisible);
-    //   const notebook = app.shell?.currentWidget as NotebookPanel;
-    //   notebook?.revealed?.then(() => {
-    //     console.log('top level CALL');
-    //     updatePagebreak(app, notebookTracker, manager);
+    // notebookTracker.restored.then(() => {
+    //   notebookTracker.currentWidget?.revealed.then(() => {
+    //     console.log('current widget');
+    //      updatePagebreak(app, notebookTracker, manager, isActiveManager);
+    //   });
+    //   notebookTracker.activeCell?.ready.then(() => {
+    //      updatePagebreak(app, notebookTracker, manager, isActiveManager);
     //   });
     // });
-    // const notebook = app.shell?.currentWidget as NotebookPanel;
-    // if (notebook) {
-    //   console.log('NOTEBOOKEXISTS')
 
-    // }
-
-    // notebookTracker.currentChanged.connect(() => {
-    //   if (notebookTracker.currentWidget instanceof NotebookPanel) {
-    //     const notebook = app.shell?.currentWidget as NotebookPanel;
-    //     if (notebook) {
-    //       notebook.content.cellInViewportChanged.connect(() => {
-    //         if (notebookTracker.currentWidget instanceof NotebookPanel) {
-    //           const notebook = app.shell?.currentWidget as NotebookPanel;
-    //           if (notebook) {
-    //             notebook.revealed.then(() => {
-    //               console.log('cellinviewport CALL');
-    //               updatePagebreak(app, manager);
-    //             });
-    //           }
-    //         }
-    //       });
-    //       notebook.revealed.then(() => {
-    //         console.log('currentChanged CALL');
-    //         updatePagebreak(app, manager);
-    //       });
-    //     }
-    //   }
-    // });
     notebookTracker.activeCellChanged.connect(() => {
       if (app.shell?.currentWidget instanceof NotebookPanel) {
         const notebook = app.shell?.currentWidget as NotebookPanel;
         if (notebook && notebook.isRevealed) {
           console.log('activeCellChanged CALL');
-          checkIPPlugin(notebook, manager);
-          manager.updatePluginStatusHeader(notebook);
-          updatePagebreak(app, notebookTracker, manager);
-          manager.eventHandlers?.update();
+
+          updatePagebreak(app, notebookTracker, manager, isActiveManager);
         }
       }
     });
     notebookTracker.widgetUpdated.connect(() => {
-      updatePagebreak(app, notebookTracker, manager);
+      updatePagebreak(app, notebookTracker, manager, isActiveManager);
       if (
         notebookTracker.currentWidget?.isAttached &&
         notebookTracker.currentWidget instanceof NotebookPanel
@@ -208,14 +149,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
         manager.eventHandlers?.switchNotebooks(notebook.content);
       }
     });
-    // if (app.shell.currentWidget instanceof NotebookPanel) {
-    //   console.log('found shell');
-    //   const notebook = app.shell.currentWidget as NotebookPanel;
-    //   Promise.all([notebook.sessionContext.ready]).then(async () => {
-    //     console.log('context CALL');
-    //     updatePagebreak(app, manager);
-    //   });
-    // }
 
     (app.shell as LabShell).activeChanged.connect(() => {
       if (app.shell.currentWidget instanceof NotebookPanel) {
@@ -223,40 +156,37 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (notebook && notebook.isRevealed) {
           console.log('LabShell activeChanged CALL');
 
-          updatePagebreak(app, notebookTracker, manager);
+          updatePagebreak(app, notebookTracker, manager, isActiveManager);
         }
       }
     });
-
-    if (settingRegistry) {
-      settingRegistry
-        .load(plugin.id)
-        .then(settings => {
-          console.log('pagebreaks settings loaded:', settings.composite);
-        })
-        .catch(reason => {
-          console.error('Failed to load settings for pagebreaks.', reason);
-        });
-    }
   }
 };
 
-function updatePagebreak(
+const updatePagebreak = _.throttle(updatePagebreakFunc, 100);
+
+function updatePagebreakFunc(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
   manager: schemaManager,
-  force: boolean = false,
-  notebookIn?: NotebookPanel
+  isActiveManager: activeManager,
+  force: boolean = false
 ) {
+  // console.log('update Pagebreak');
   // console.log(
   //   'updating pagebreak',
   //   notebookTracker.currentWidget?.content.widgets
   // );
+  if (!isActiveManager.checkisActive(notebookTracker)) {
+    console.log('Pagebreaks is Inactive!');
+    return;
+  }
   const notebook = notebookTracker.currentWidget;
   if (notebook === undefined || notebook === null) {
     console.error('ERROR: notebook was undefined or null!!!');
     return;
   }
+
   if (!manager.eventHandlers) {
     if (notebook.content.isAttached) {
       manager.eventHandlers = new pagebreakEventHandlers(
@@ -265,9 +195,20 @@ function updatePagebreak(
       );
     }
   }
-  // console.log('passedCheck', notebook.content.widgets);
+
+  // maintainence tasks:
+  // if (manager.getPluginStatus() === 'unset') {
+  //   checkIPPlugin(notebook, manager);
+  // }
+  isActiveManager.updatePlugin(notebook);
+
+  isActiveManager.updatePluginStatusHeader(notebook);
   cleanNbTypes(notebook?.content);
   ensurePBCellsAreUndeleteable(notebook?.content);
+  manager.eventHandlers?.update();
+  addVariableListWidget(notebookTracker, manager);
+
+  // updateCommands(app);
   const schema = buildNotebookSchema(notebook);
   // if (orderCells(notebook, schema)) {
   //   schema = buildNotebookSchema(notebook);
@@ -281,19 +222,19 @@ function updatePagebreak(
     now.getTime() - manager.lastSend.getTime() > 100 ||
     force
   ) {
-    // console.log('previous schema', manager.previousSchema);
     if (
       !notebook?.sessionContext ||
-      !notebook?.sessionContext?.session?.kernel ||
-      force
+      !notebook?.sessionContext?.session?.kernel
     ) {
+      console.log("PB: Not sending schema because kernel isn't connected");
       return;
     }
+    // console.log('sending schema', schema);
     manager.lastSend = now;
     manager.previousSchema = schema;
     const jsonSchema = JSON.stringify(schema);
     sendSchema(notebook, jsonSchema, manager);
-    notebook.update();
+    // notebook.update();
   }
 }
 export default plugin;

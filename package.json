@@ -207,9 +207,6 @@
     "lint-staged": {
         "*.{js, jsx,ts,tsx}": [
             "jlpm lint"
-        ],
-        "*.*": [
-            ""
         ]
     }
 }

@@ -24,7 +24,7 @@ type PagebreakInternalSchema = {
   scopes: PagebreakScopeList;
   cellList: PagebreakSchema;
 };
-type pluginStatus = 'active' | 'inactive';
+type pluginStatus = 'active' | 'inactive' | 'unset';
 export {
   IPagebreakCell,
   IPagebreakScope,

@@ -20,3 +20,5 @@ app/index.template.js
 # ms IDE stuff
 .history/
 .vscode/
+*.json
+*.ipynb

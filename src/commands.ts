@@ -11,15 +11,16 @@ import addPagebreakIconStr from '../style/create-icon.svg';
 import '../style/index.css';
 import mergeUpIconStr from '../style/merge-up-icon.svg';
 import runPagebreakIconStr from '../style/run-pagebreak-icon.svg';
+import { activeManager } from './activeManager';
 import { schemaManager } from './schemaManager';
 import { findHeaderandFooter, findScopeNumber } from './utils';
-
 function addCommands(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
   updateCallback: CallableFunction,
   schemaManager: schemaManager,
-  sessionDialogs: ISessionContextDialogs
+  sessionDialogs: ISessionContextDialogs,
+  activeManager: activeManager
 ) {
   const { commands } = app;
   const runPagebreakIcon = new LabIcon({
@@ -81,8 +82,9 @@ function addCommands(
     },
     isVisible: () => {
       if (
-        notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
-        notebookTracker.activeCell?.model.getMetadata('pagebreakheader')
+        activeManager.checkisActive(notebookTracker) &&
+        (notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
+          notebookTracker.activeCell?.model.getMetadata('pagebreakheader'))
       ) {
         const scopeNum = findScopeNumber(
           notebookTracker.activeCell,
@@ -106,7 +108,6 @@ function addCommands(
       if (!notebook?.model) {
         return;
       }
-      console.log('start');
       const activeCell = notebook.activeCell;
       const scopeNum = findScopeNumber(
         activeCell,
@@ -125,7 +126,6 @@ function addCommands(
 
       // notebook.update();
       // updateCallback();
-      console.log('finish');
     },
     isVisible: () => {
       const scopeNum = findScopeNumber(
@@ -138,7 +138,11 @@ function addCommands(
         notebookTracker?.currentWidget?.content,
         schemaManager?.previousSchema
       );
-      if (headerIndex !== -1 && footerIndex !== -1) {
+      if (
+        activeManager.checkisActive(notebookTracker) &&
+        headerIndex !== -1 &&
+        footerIndex !== -1
+      ) {
         return true;
       }
       return false;
@@ -207,11 +211,22 @@ function addCommands(
       notebook.activeCell?.update();
       updateCallback();
     },
-    isVisible: () =>
-      notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
-      (app.shell.currentWidget as NotebookPanel)?.content?.widgets?.find(cell =>
-        cell.model.getMetadata('pagebreak')
-      ) === undefined
+    isVisible: () => {
+      const isActive = activeManager.checkisActive(notebookTracker);
+      const currentCellIsPB =
+        notebookTracker.activeCell?.model.getMetadata('pagebreak') ?? false;
+      const noPBsExist =
+        (app.shell.currentWidget as NotebookPanel)?.content?.widgets?.find(
+          cell => cell.model.getMetadata('pagebreak')
+        ) === undefined;
+      // console.log(isActive, currentCellIsPB, noPBsExist);
+      if (isActive) {
+        if (currentCellIsPB || noPBsExist) {
+          return true;
+        }
+      }
+      return false;
+    }
   });
   // commands.addCommand('notebook-cells:run-and-advance', {
   //   label: args => (args.toolbar ? '' : 'Run and Advance'),
@@ -229,4 +244,8 @@ function addCommands(
   // });
 }
 
-export { addCommands };
+function updateCommands(app: JupyterFrontEnd) {
+  const { commands } = app;
+  commands.notifyCommandChanged();
+}
+export { addCommands, updateCommands };

@@ -3,20 +3,25 @@ import copy
 import inspect
 import itertools
 import os
+import pprint
 import re
 import sys
 import typing
 import warnings
 from collections import Counter
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from operator import eq
 from typing import Any, Dict, List, Set, Tuple, Type
 
+import numpy as np
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
 from loguru import logger
 from pagebreak_magic import pagebreak_magics
+from pandas import DataFrame, Series
 
 DEBUG = False
 
@@ -195,13 +200,16 @@ class PagebreaksASTTransformer(baseASTTransform):
     def __init__(self, shell=None):
         self.shell: TerminalInteractiveShell | None = shell
         super().__init__()
-        self.userVariables: dict[int, set[str]] = (
-            {}
-        )  # variables we've defined so far in each pagebreak
-        self.currentExportSet: set[Tuple[str, str]] = (
-            set()
-        )  # for each exported variable, we store the pair of their local name and their global name
 
+        # variables we've defined so far in each pagebreak
+        self.userVariables: dict[int, set[str]] = ({})  
+
+        # for each exported variable, we store the pair of their local name and their global name
+        self.currentExportSet: set[Tuple[str, str]] = (set())  
+
+        # if the cell errors, we need to remove the newly added definitions, so we store them here
+        self.newlyAddedExportedVariables : tuple[int, set[str]] = (0,set())
+        
     def setStoredData(self, data: astWalkData):
         super().setStoredData(data)
 
@@ -214,7 +222,7 @@ class PagebreaksASTTransformer(baseASTTransform):
         # if not hasattr(node, "_attributes"):
         #     node._attributes = ("",)
         if data is None:
-            logger.info(
+            warnings.warn(
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
@@ -230,34 +238,51 @@ class PagebreaksASTTransformer(baseASTTransform):
             if any(magic in dump for magic in specialMagics):
                 data.isLineMagic = True
                 # print("found line magic")
-        logger.info(dump)
-        # print(dump)
+        if "extension_manager" in dump:
+            data.isLineMagic = True
+
+        if "extension_manager" not in dump:
+            logger.info("Module Start:" +  str(data.currentContext) + str(data.exportedVariables))
+            logger.info("Pretransformed AST: " + str(dump))
+        if DEBUG:
+            print(dump)
         self.currentExportSet.clear()  # wipe the export set every run
+        self.newlyAddedExportedVariables[1].clear() # wipe added variables every run
         defFinder = DefinitionsFinder()
         trackedNames = defFinder.getDefinitionsAtNode(node)
-        logger.info("New Definitions Found:" + str(trackedNames))
-        logger.info(trackedNames)
+
+        if not data.isLineMagic:
+            logger.info("New Definitions Found:" + str(trackedNames))
+            logger.info(trackedNames)
 
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
         self.userVariables.update({data.currentContext: savedVariables})
+        self.newlyAddedExportedVariables = (data.currentContext, trackedNames)
+        
+        if not data.isLineMagic:
+            logger.info("saved variables" + str(self.userVariables))
 
-        logger.info("saved variables" + str(self.userVariables))
         data.userDefinedVariables.update(savedVariables)
         self.generic_visit(node, data)
+        if not data.isLineMagic:
+            logger.info("Transformed AST" + str(dump))
+        if DEBUG:
+            dump = ast.dump(node, indent=4)
+            print(dump)
         return node
 
     def visit_Name(self, node, data: astWalkData):
-        logger.info("visit name export variables" + str(data.exportedVariables))
+        if not data.isLineMagic:
+            logger.info("visit name export variables" + str(data.exportedVariables))
         # check if variable is exported from another context
         for context, exportedVariables in data.exportedVariables.items():
             if (
-                context != data.currentContext
-                and node.id in exportedVariables
-                and context
-                < data.currentContext  # only export variables from earlier contexts
+                node.id in exportedVariables
+                and context < data.currentContext  # only export variables from earlier contexts
             ):
-                logger.info(
+                if not data.isLineMagic:
+                    logger.info(
                     "changing name ["
                     + node.id
                     + "] to ["
@@ -267,7 +292,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                 if isinstance(
                     node.ctx, ast.Store
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
-
+                    logger.error("Variable redefinition" + node.id)
                     message = (
                         """pagebreaksError: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
@@ -290,7 +315,8 @@ class PagebreaksASTTransformer(baseASTTransform):
                     id=transformName(node.id, context, export=True), ctx=node.ctx
                 )
         if node.id in data.userDefinedVariables:
-            logger.info(
+            if not data.isLineMagic:
+                logger.info(
                 "changing name ["
                 + node.id
                 + "] to ["
@@ -303,9 +329,9 @@ class PagebreaksASTTransformer(baseASTTransform):
 
         return node
     def visit_Constant(self, node, data: astWalkData):
-        if node.value in data.userDefinedVariables:
-            return ast.Constant(value=transformName(node.value,data.currentContext))
-        self.generic_visit(node, data)
+        # if node.value in data.userDefinedVariables:
+        #     return ast.Constant(value=transformName(node.value,data.currentContext))
+        # self.generic_visit(node, data)
         return node
 
     # we dont want to touch anything in import statements
@@ -338,16 +364,29 @@ class PagebreaksASTTransformer(baseASTTransform):
             "HandleNewBlock:" + str(node) + ", with definitions: " + str(newDefinitions)
         )
 
-        # we can just remove any variable names which are redefined because python considers any definition local to a block by default, so we need a special case for the "global" and "nonlocal" keywords, but otherwise if a definition occurs within a block, its assumed other references to that varible in that block reference the local var, so a global variable can't be used and a local variable of the same name cant be defined in the same python block, regardless of where that definition is in the block. For example, this:
+        # we can just remove any variable names which are redefined because python considers any definition local 
+        # to a block by default, so we need a special case for the "global" and "nonlocal" keywords, but otherwise
+        # if a definition occurs within a block, its assumed other references to that varible in that block 
+        # reference the local var, so a global variable can't be used and a local variable of the same name cant 
+        # be defined in the same python block, regardless of where that definition is in the block. For example, this:
         # a = 1
         # def f():
         #     a = a + 1
         # f()
         # will throw an error for this reason
+
         data.userDefinedVariables.difference_update(newDefinitions)
 
         self.generic_visit(node, data)
         return node
+    
+    def revertNewlyAddedNames(self):
+        context = self.newlyAddedExportedVariables[0]
+        namesToRemove = self.newlyAddedExportedVariables[1]
+        currentNames = self.userVariables.get(context, set())
+        currentNames.difference_update(namesToRemove)
+        self.userVariables.update({context :currentNames})
+
 
 
 class Pagebreak(object):
@@ -383,31 +422,39 @@ class Pagebreak(object):
 
 
     def pre_run_cell(self, info: ExecutionInfo):
-        logger.info(info)
+        logger.info(info.raw_cell)
         study_logger.info(info)
-        # print(info)
-        # set the current context
+
+
+        # Check our magics are setup to get data
         if self.magics is None:
             logger.info("magics error")
+            warnings.warn("Magics Error, Please Reload Pagebreaks")
             return
         if self.magics.schema is None:
-            logger.info("schema error")
+            warnings.warn("Schema Error, Please Reload Pagebreaks")
             return
+        
+
         # grab our data structure from the front end
         schema: dict = self.magics.schema
+        if DEBUG:
+            pprint.pprint(schema.keys())
         cellsToScopes: dict[str, int] = schema.get("cellsToScopes", {})
         scopeList: dict[int, set[str]] = {
-            int(key): set(filter(None, val))
+            int(key): set(val)
             for (key, val) in schema.get("scopeList", {}).items()
         }
 
-        # check if our cell_id is in the scope
+        # check if our cell_id is in a scope
         currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
         if currentContext == -1:
             raise PagebreakError("Couldn't find schema").with_traceback(None)
         self.current_context = currentContext
 
-        # check for duplicates and previous exports which aren't defined
+        # check for duplicate exported names and previous exports which aren't defined
+        # (we don't want to export a variable if it shares the name with a previously exported one, 
+        # or if it doesn't exist yet)
         duplicateNames = set()
         seen = set()
         cleanedScopeList: dict[int, set[str]] = {}
@@ -419,15 +466,14 @@ class Pagebreak(object):
                     seen.add(var)
                     searchName = transformName(var, key, False)
                     # print("searching for", searchName)
-                    if (
-                        self.shell.user_ns.get(searchName, "NoVar!") != "NoVar!"
-                    ) | key >= self.current_context:
+                    if (searchName in self.shell.user_ns.keys()) or (key >= self.current_context):
+                        # print("adding variable to export", var, "in scope", key)
                         if cleanedScopeList.get(key) is not None:
                             cleanedScopeList[key].add(var)
                         else:
                             cleanedScopeList[key] = set([var])
-        # print("scopelist", scopeList)
-        # print("cleanedscopeLIst", cleanedScopeList)
+
+        # If we have any duplicate names found, warn the user
         if len(duplicateNames) > 0:
             # logger.info("duplicateNames", duplicateNames)
             warnings.warn(
@@ -436,8 +482,8 @@ class Pagebreak(object):
                 + "', skipping later exports"
             )
 
-        # remove exported variables for
-
+        
+        #Set our data within the AST Transformer, which fires after we return from this function
         self.ast_transformer.setStoredData(
             astWalkData(
                 currentContext=currentContext,
@@ -446,23 +492,29 @@ class Pagebreak(object):
                 isLineMagic=False
             )
         )
-        logger.info("setting data:" + str(cleanedScopeList) + str(currentContext))
+        logger.info("setting data:" + str(cleanedScopeList) + "current context" + str(currentContext))
+        # if DEBUG:
+        #     print("cleaned ScopeList ", cleanedScopeList)
+        #     print("current Context", currentContext)
 
-        # cache exported variables
+
+        # cache local variables
         cache = {
             name: value
             for (name, value) in self.shell.user_ns.items()
             if name.startswith("pb_" + str(currentContext) + "_")
         }
         self.cache = cache
-        ##find variables we want to export
+
+
+        #find variables we want to export (variables exported by scopes upstream from the current)
         scopesToExport: dict[int, set[str]] = {
             context: val
             for (context, val) in cleanedScopeList.items()
             if context < currentContext
         }
 
-        ## Format Variable Names
+        # Format Variable Names (find the local "pb_x_var" name and the global "pb_export_var" name)
         exportVariableNames: dict[str, str] = {}
         for scope, variables in scopesToExport.items():
             for name in variables:
@@ -471,7 +523,8 @@ class Pagebreak(object):
                 exportVariableNames[localName] = globalName
         logger.info("exportvariablenames" + str(exportVariableNames))
 
-        ## Clear Exported Variables if we aren't actively exporting them (they were removed from the list)
+        # Clear Previously Exported Variables if we aren't actively exporting them now 
+        # (i.e. they were removed from the list, or we switched contexts)
         globalNamesToDelete = [
             name
             for name in self.shell.user_ns
@@ -483,57 +536,83 @@ class Pagebreak(object):
             for name in globalNamesToDelete:
                 self.shell.user_ns.pop(name, None)
 
-        ##Make Global Copies of Local Vars
+        # Make Global Copies of Local Vars (actually export the variables)
         exportVariables = {}
         for localName, globalName in exportVariableNames.items():
             localValue = self.shell.user_ns.get(localName, None)
             if localValue is not None:
                 exportVariables[globalName] = copy.deepcopy(localValue)
-        logger.info("push export variables" + str(exportVariables))
+        # logger.info("push export variables" + str(exportVariables))
+        # if DEBUG:
+        #     print("exporting variables:",exportVariables)
         self.shell.push(exportVariables)
         self.exportVariableNames = exportVariableNames
 
     def post_run_cell(self, result: ExecutionResult):
         # logger.info("post run")
-        if not result.success:
-            return
 
+        if not result.success:
+            #Restore Cached Variables on fail
+            self.shell.user_ns.update(self.cache)
+
+            #Delete new definitions
+            self.ast_transformer.revertNewlyAddedNames()
+            return
+        
+        # Check whether any exported variables have been modified
+        # this gets tricky with classes, but is straightforward with most other variables
         namesToDrop = []
         for localName, globalName in self.exportVariableNames.items():
             localVar = self.shell.user_ns.get(localName)
             globalVar = self.shell.user_ns.get(globalName)
             if localVar is not None:
-                if hasattr(localVar, "__dict__"):
-                    if type(localVar) != type(globalVar):
-                        namesToDrop.append(globalName)
-                    elif hasattr(globalVar, "__dict__"):
-                        if localVar.__dict__ != globalVar.__dict__:
-                            namesToDrop.append(globalName)
-                else:
-                    if localVar != globalVar:
-                        logger.info("found unequal variable" + localName + globalName)
-                        namesToDrop.append(globalName)
+                logger.info("calling nested_eq on " + localName + str(localVar.__class__))
+                isEqual = self.nested_equal(localVar,globalVar)
+                logger.info("isEqual:" + str(isEqual))
+                if not isEqual:
+                   namesToDrop.append(globalName)
+                # #if the variable has a dict, it means its a class instantiation
+                # if hasattr(localVar, "__dict__"):
+                #     # if the type of the variable has changed, we know its been modified
+                #     if type(localVar) != type(globalVar):
+                #         namesToDrop.append(globalName)
+                #     # otherwise, we compare the dicts of the two to compare their state
+                #     elif hasattr(globalVar, "__dict__"):
+                #         if localVar.__dict__ != globalVar.__dict__:
+                #             namesToDrop.append(globalName)
+                # # Otherwise, this is a normal comparison by value
+                # else:
+                #     if localVar != globalVar:
+                #         logger.info("found unequal variable" + localName + globalName)
+                #         namesToDrop.append(globalName)
 
+
+        #if we have any modified exported variables, return to the previous state
         if len(namesToDrop) > 0:
             for name in namesToDrop:
                 self.shell.user_ns.pop(name)
 
-            ## reset local variables
-            localVariableNames = [
-                name
-                for name in self.shell.user_ns.keys()
-                if name.startswith("pb_" + str(self.current_context) + "_")
-            ]
-            for name in localVariableNames:
-                self.shell.user_ns.pop(name)
+            # ## reset local variables
+            # localVariableNames = [
+            #     name
+            #     for name in self.shell.user_ns.keys()
+            #     if name.startswith("pb_" + str(self.current_context) + "_")
+            # ]
+            # for name in localVariableNames:
+            #     self.shell.user_ns.pop(name)
 
+            ## reset local variables
             self.shell.user_ns.update(self.cache)
+
+            #Delete new definitions
+            self.ast_transformer.revertNewlyAddedNames()
 
             ## Throw Pretty Error Message
             try:
                 userFacingNames = [
                     name.removeprefix("pb_export_") for name in namesToDrop
                 ]
+                logger.error("Attempted to Overwrite Read-Only Exported Variables: " + str(namesToDrop))
                 raise PagebreakError(
                     "Attempted to Overwrite Read-Only Exported Variables: '"
                     + ", ".join(userFacingNames)
@@ -542,12 +621,93 @@ class Pagebreak(object):
                 ).with_traceback(None)
             except:
                 self.shell.showtraceback()
+
     def load_metadata(self):
         return
 
     def set_magics(self, magics: pagebreak_magics):
         self.magics = magics
 
+    def nested_equal(self, localVar, globalVar) -> bool:
+        if localVar.__class__ != globalVar.__class__:
+            logger.info("classes dont match")
+            return False
+        # for types that implement their own custom strict equality checking
+        seq = getattr(localVar, "seq", None)
+        if seq and callable(seq):
+            logger.info("seq" + str(seq(globalVar)))
+            return seq(globalVar)
+        #     # Check equality according to type type [sic].
+        # if isinstance(localVar, basestring):
+        #     return localVar == globalVar
+
+        if isinstance(localVar, np.ndarray):
+            logger.info("ndarray" + str(bool(np.all(localVar == globalVar))))
+            return bool(np.all(localVar == globalVar))
+        if isinstance(localVar, Sequence):
+            isEqual = all(itertools.starmap(eq, zip(localVar, globalVar)))
+            logger.info("Sequence" + str(isEqual))
+            return isEqual
+            # return all(self.nested_equal(x, y) for x, y in zip(localVar, globalVar))
+        if isinstance(localVar, Mapping):
+            if set(localVar.keys()) != set(globalVar.keys()):
+                return False
+            return all(self.nested_equal(localVar[k], globalVar[k]) for k in localVar.keys())
+        if isinstance(localVar, Set):
+            return localVar == globalVar
+        if isinstance(localVar, Series):
+            return localVar.equals(globalVar)
+        if isinstance(localVar, DataFrame):
+            return localVar.equals(globalVar)
+        if hasattr(localVar, "__dict__") and hasattr(globalVar, "__dict__"):
+            logger.info("comparing __dict__s")
+            for localVal, globalVal in zip(localVar.__dict__,globalVar.__dict__):
+                if not self.nested_equal(localVal,globalVal):
+                    logger.info("dicts dont match")
+                    logger.info(str(localVar.__dict__))
+                    logger.info(str(globalVar.__dict__))
+                    return False
+        isEqual = (localVar == globalVar)
+        if isinstance(isEqual,Iterable):
+            return all(isEqual)
+        if isinstance(isEqual, bool):
+            return isEqual
+        logger.error("nested equal returned something weird" + str(isEqual.__class__)+ str(isEqual))
+        #https://stackoverflow.com/questions/18376935/best-practice-for-equality-in-python
+#         from collections import Sequence, Mapping, Set
+# import numpy as np
+
+# def nested_equal(a, b):
+#     """
+#     Compare two objects recursively by element, handling numpy objects.
+
+#     Assumes hashable items are not mutable in a way that affects equality.
+#     """
+#     # Use __class__ instead of type() to be compatible with instances of 
+#     # old-style classes.
+    # if a.__class__ != b.__class__:
+    #     return False
+
+#     # for types that implement their own custom strict equality checking
+#     seq = getattr(a, "seq", None)
+#     if seq and callable(seq):
+#         return seq(b)
+
+#     # Check equality according to type type [sic].
+#     if isinstance(a, basestring):
+#         return a == b
+#     if isinstance(a, np.ndarray):
+#         return np.all(a == b)
+#     if isinstance(a, Sequence):
+#         return all(nested_equal(x, y) for x, y in zip(a, b))
+#     if isinstance(a, Mapping):
+#         if set(a.keys()) != set(b.keys()):
+#             return False
+#         return all(nested_equal(a[k], b[k]) for k in a.keys())
+#     if isinstance(a, Set):
+#         return a == b
+#     return a == b
+        return False
 
 _pb: Pagebreak | None = None
 _pb_magics: pagebreak_magics | None = None
@@ -583,7 +743,6 @@ def load_ipython_extension(ip: TerminalInteractiveShell):
 def unload_ipython_extension(ip: TerminalInteractiveShell):
     global _pb
     if _pb:
-        _pb = typing.cast(Pagebreak, _pb)
         ip.ast_transformers.remove(_pb.ast_transformer)
         ip.events.unregister("pre_run_cell", _pb.pre_run_cell)
         ip.events.unregister("post_run_cell", _pb.post_run_cell)

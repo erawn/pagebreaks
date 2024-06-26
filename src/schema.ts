@@ -1,10 +1,10 @@
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
-import _ from 'lodash';
+import { activeManager } from './activeManager';
 import { schemaManager } from './schemaManager';
 import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
 function buildNotebookSchema(notebook: NotebookPanel) {
-  const cells = _.cloneDeepWith(notebook.content.widgets);
+  const cells = notebook.content.widgets;
   // console.log('cells:', cells);
   // for (const cell of cells.values()) {
   //   console.log(cell.model.id);
@@ -24,18 +24,23 @@ function buildNotebookSchema(notebook: NotebookPanel) {
     } else if (cell.model.type === 'raw') {
       const content = cell.model.sharedModel.getSource();
       if (cell.model.getMetadata('pagebreak')) {
-        const names = content
-          .split('{')
-          .at(1)
-          ?.split('}')
-          .at(0)
-          ?.split(' ') ?? [''];
+        const names = content;
+        let variables = parseExport(names);
+        if (variables === null) {
+          variables = [];
+          cell.node.title =
+            'Export Statement Poorly Formed, should look like:\n "Export { var1 var2 var3 }"';
+          cell.editorWidget?.addClass('jp-pb-poorly-formed-export');
+        } else {
+          cell.node.title = '';
+          cell.editorWidget?.removeClass('jp-pb-poorly-formed-export');
+        }
         // console.log('found pb names', names);
         const newCell: IPagebreakCell = {
           index: index,
           id: cell.model.id,
           type: 'pagebreak',
-          variables: names
+          variables: variables ?? []
         };
         cellList.push(newCell);
       }
@@ -140,13 +145,13 @@ function sendSchema(
   }
 
   if (manager.future === null || manager.future.isDisposed) {
-    // console.log('sending Schema', schema);
+    console.log('sending Schema');
     const future = kernel.requestExecute(content);
     // Handle iopub messages
     future.onIOPub = msg => {
       // eslint-disable-next-line no-constant-condition
       if (msg.header.msg_type !== 'status') {
-        console.log(msg.content);
+        console.log('sendSchema', msg);
       }
     };
     manager.future = future;
@@ -154,43 +159,59 @@ function sendSchema(
 
   // kernelModel.execute();
 }
-function checkIPPlugin(notebook: NotebookPanel, manager: schemaManager) {
-  // console.log('send Schema');
 
+function parseExport(input: string): string[] | null {
+  const outerRE = new RegExp(/export {(.*)}/);
+
+  const outer = outerRE.exec(input);
+  // console.log('outer', outer);
+  const re = new RegExp(/\s*(\S*)/, 'g');
+  // const matched = re.exec(input);
+  if (outer) {
+    const captureGroup = outer.at(1) ?? '';
+    const matches = [...captureGroup.matchAll(re)];
+    const vars = matches
+      .map(matchArray => matchArray.at(1) ?? '')
+      .filter(varName => varName !== '');
+    if (vars.some(name => name.search(',') >= 0)) {
+      return null;
+    }
+    return vars;
+  }
+  // console.log('matches', matches);
+  return null;
+}
+function sendLog(
+  notebook: NotebookPanel,
+  message: string,
+  activeManager: activeManager
+) {
+  // console.log('send Schema');
+  if (!activeManager.checkIsLogging()) {
+    console.log('Not sending log because its diabled');
+    return;
+  }
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
-    code: 'print(get_ipython().extension_manager.loaded) \n',
+    code: '%%pb_log \n' + message,
     silent: true,
     store_history: false
   };
-
+  // const stringSchema = { pagebreakSchema: schema };
+  // console.log('schema string:', JSON.stringify(stringSchema));
   const kernel = notebook?.sessionContext?.session?.kernel;
   if (!kernel) {
     console.error('Session has no kernel.');
     return;
   }
-
-  if (manager.statusFuture === null || manager.statusFuture.isDisposed) {
-    // console.log('sending Schema', schema);
-    const future = kernel.requestExecute(content);
-    // Handle iopub messages
-    future.onIOPub = msg => {
-      // eslint-disable-next-line no-constant-condition
-      if (msg.header.msg_type !== 'status' || true) {
-        console.log(msg.header.msg_type, msg.content);
-      }
-      if (KernelMessage.isStreamMsg(msg)) {
-        const result = msg as KernelMessage.IStreamMsg;
-        if (result.content.text.search('pagebreaks_ip') > 0) {
-          manager.setPluginStatus('active', notebook);
-          console.log('Pagebreaks_IP is active!');
-        } else {
-          manager.setPluginStatus('inactive', notebook);
-          console.log('Pagebreaks_IP is inactive!');
-        }
-      }
-    };
-    manager.statusFuture = future;
-  }
+  // console.log('sending Schema', schema);
+  const future = kernel.requestExecute(content);
+  // Handle iopub messages
+  future.onIOPub = msg => {
+    // eslint-disable-next-line no-constant-condition
+    if (msg.header.msg_type !== 'status') {
+      console.log('sendLog', msg.content);
+    }
+  };
 
   // kernelModel.execute();
 }
@@ -244,4 +265,4 @@ function checkIPPlugin(notebook: NotebookPanel, manager: schemaManager) {
 //   return didModify;
 // }
 
-export { buildNotebookSchema, checkIPPlugin, sendSchema };
+export { buildNotebookSchema, parseExport, sendLog, sendSchema };

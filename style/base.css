@@ -18,7 +18,7 @@
   .jp-Notebook
   .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
   position: relative;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 
   /* left: 0px; */
 }
@@ -51,6 +51,8 @@
    {
 } */
 .jp-Notebook .jp-Cell.jp-MarkdownCell.jp-Notebook-cell.jp-pb-header {
+  margin-top: 15px;
+
   &.jp-pb-pagebreakEven {
     background: rgb(164 229 255 / 63%);
   }
@@ -73,11 +75,11 @@
   border-bottom-width: 2px;
 }
 
-.jp-pb-variableList {
+/* .jp-pb-variableList {
   :hover {
     background: var(--jp-layout-color1);
   }
-}
+} */
 
 .jp-pb-pluginstatus-header {
   background: var(--jp-rendermime-error-background);
@@ -93,4 +95,41 @@
 
 .jp-pb-pluginstatus-bottomtext {
   color: var(--jp-content-font-color2);
+}
+
+.jp-pb-poorly-formed-export {
+  color: var(--jp-error-color0);
+  text-decoration-line: underline;
+  text-decoration-thickness: auto;
+  text-decoration-style: wavy;
+}
+
+.jp-pb-poorly-formed-export ::before {
+  content: '';
+}
+
+.jp-pb-poorly-formed-export-hover ::before {
+  content: 'Export Statement Poorly Formed, should look like:\A "Export { var1 var2 var3 }"';
+  visibility: hidden;
+  opacity: 0;
+  width: 40%;
+  background-color: var(--jp-layout-color1);
+  color: var(--jp-content-font-color0);
+  text-align: left;
+  border-radius: 5px;
+  padding: 5px;
+  white-space: pre-line;
+  border-color: var(--md-grey-700);
+
+  /* font-family: var(--jp-code-font-family-default); */
+  transition: opacity 1s ease-in-out;
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 110%;
+}
+
+.jp-pb-poorly-formed-export-hover :hover::before {
+  opacity: 1;
+  visibility: visible;
 }

@@ -13,6 +13,10 @@ pagebreaks/__pycache__/
 # Version file is handled by hatchling
 _version.py
 
+backend/pagebreak_ip/Demos/babynames/*
+backend/pagebreak_ip/Demos/fec/*
+backend/pagebreak_ip/Demos/movielens/*
+backend/pagebreak_ip/Demos/usda_food/*
 # Integration tests
 ui-tests/test-results/
 ui-tests/playwright-report/

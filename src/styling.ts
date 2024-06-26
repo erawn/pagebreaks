@@ -16,7 +16,7 @@ function tagNotebookCells(
   ) {
     return;
   }
-  console.log('styling cells');
+  // console.log('styling cells');
   const activeCellScopeNum = notebook?.content?.activeCell
     ? findScopeNumber(notebook?.content?.activeCell, schema)
     : -1;
@@ -51,9 +51,9 @@ function tagNotebookCells(
       'jp-pb-selectedPagebreak',
       scopeNum === activeCellScopeNum
     );
-    cell.update();
+    // cell.update();
   });
-  notebook?.content.update();
+  // notebook?.content.update();
 }
 function toggleClass(cell: Cell, classname: string, condition: boolean) {
   if (condition) {

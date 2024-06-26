@@ -1,13 +1,18 @@
 import ast
 import sys
+import typing
 from pprint import pprint
 
 import expecttest
+import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis.strategies import lists, text
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.utils.capture import capture_output
+
+from backend.pagebreak_ip import pagebreaks_ip as pagebreaks_ip
+from backend.pagebreak_ip.pagebreaks_ip import PagebreakError
 
 
 class Test_IP:
@@ -72,6 +77,28 @@ def f():
             )
         assert "a = 2" in capture.stdout
         assert "b = 5" in capture.stdout
+
+    def test_delNamesAfterError(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":[""],"1":["a"]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+    a = 2
+    a/0
+    """,
+            cell_id="1",
+        )
+        found = False
+        for transformer in ip.ast_transformers: # type: ignore
+            if str(type(transformer)) == "<class 'pagebreaks_ip.PagebreaksASTTransformer'>":
+                found = True
+                astTransform = typing.cast(pagebreaks_ip.PagebreaksASTTransformer,transformer)
+                assert not 'a' in astTransform.userVariables.get(0, set())
+        assert found
+
 
     def test_outoforder(self, ip: TerminalInteractiveShell):
         ip.run_cell_magic(
@@ -203,7 +230,30 @@ test""",
         assert ip.user_ns.get("pb_export_c").a == 3  # type: ignore
         assert ip.user_ns.get("pb_export_myclass").a == 4  # type: ignore
 
+class Test_Comparison:
 
+    def test_np(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":["a"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+import numpy as np
+a = np.array((1,1,2))
+                    """,
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                    raw_cell="""
+a.fill(0)
+                            """,
+                    cell_id="2",
+                )
+        assert "PagebreakError: Attempted to Overwrite Read-Only Exported Variables: 'a'" in capture.stdout
+        assert ip.user_ns.get("pb_export_a") == None
 ##variable resets
 
 ## error messages

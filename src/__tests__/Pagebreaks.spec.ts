@@ -36,8 +36,15 @@
 // afterAll(async () => {
 //   await server.shutdown();
 // });
+import { parseExport } from '../schema';
 describe('pagebreaks', () => {
   it('should be tested', () => {
     expect(1 + 1).toEqual(2);
+  });
+});
+
+describe('parseExport', () => {
+  it('shouldn not include spaces', () => {
+    expect(parseExport('export { x   d  fjs }')).toEqual(['x', 'd', 'fjs']);
   });
 });

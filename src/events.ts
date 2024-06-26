@@ -15,6 +15,7 @@ import {
   PAGEBREAK_HEADER_TAG
 } from './constants';
 import { schemaManager } from './schemaManager';
+import * as Utils from './utils';
 
 const DROP_TARGET_CLASS = 'jp-mod-dropTarget';
 const DROP_SOURCE_CLASS = 'jp-mod-dropSource';
@@ -770,13 +771,30 @@ export class pagebreakEventHandlers {
       // For collapsed markdown headings with hidden "child" cells, move all
       // child cells as well as the markdown heading.
       const cell = toMove[toMove.length - 1];
+      let recollapse = false;
       if (cell instanceof MarkdownCell && cell.headingCollapsed) {
         const nextParent = NotebookActions.findNextParentHeading(cell, source);
-        if (nextParent > 0) {
-          const index = findIndex(source.widgets, (possibleCell: Cell) => {
-            return cell.model.id === possibleCell.model.id;
-          });
+        const index = findIndex(source.widgets, (possibleCell: Cell) => {
+          return cell.model.id === possibleCell.model.id;
+        });
+        console.log('dropping', nextParent);
+        if (nextParent > 0 && nextParent < source.widgets.length) {
           toMove.push(...source.widgets.slice(index + 1, nextParent));
+        } else {
+          //if this is the last header, make sure we don't move cells below the pb
+          const scopeNum = Utils.findScopeNumber(
+            cell,
+            this._manager.previousSchema
+          );
+          const [, , , footerIndex] = Utils.findHeaderandFooter(
+            scopeNum,
+            notebook,
+            this._manager.previousSchema
+          );
+          cell.headingCollapsed = false;
+          console.log('found collapse to drag', index, footerIndex);
+          toMove.push(...source.widgets.slice(index + 1, footerIndex + 1));
+          recollapse = true;
         }
       }
 
@@ -813,6 +831,9 @@ export class pagebreakEventHandlers {
 
       // Move the cells one by one
       notebook.moveCell(fromIndex, toIndex, toMove.length);
+      if (recollapse) {
+        (cell as MarkdownCell).headingCollapsed = true;
+      }
     } else {
       // Handle the case where we are copying cells between
       // notebooks.
