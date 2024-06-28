@@ -19,7 +19,7 @@ For example:
 
 ### %who_pb
 
-We've added the IPython magic "%who_pb", which is a pagebreaks-specific version of "%who_ls". "%who_pb" prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
+We've added the IPython magic ```%who_pb"```, which is a pagebreaks-specific version of ```%who_ls```. ```%who_pb"``` prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
 
 ### Exported Variable List
 
