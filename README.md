@@ -1,10 +1,50 @@
-# pagebreaks
+# Pagebreaks : Scope Boundaries for Jupyter Notebooks
 
-A JupyterLab extension.
+Pagebreaks is a research project exploring how notebook programming enviornments could support scope boundaries between _cells_. Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook:
+
+To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state. 
+
+
+## Details
+
+### Making a New Pagebreak
+
+New pagebreaks are made by pressing this button: on the "Export" cell of a pagebreak at the bottom. 
+
+### Merging Pagebreaks
+Instead of deleting Pagebreaks, you can merge the cells of a pagebreak into the one above it with this button: 
+
+For example:
+
+
+### %who_pb
+
+We've added the IPython magic "%who_pb", which is a pagebreaks-specific version of "%who_ls". "%who_pb" prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
+
+### Exported Variable List
+
+A list of the currently available exported variables is in your notebook toolbar:
+
+
+### How it works
+
+You shouldn't need to know what's going on under the hood to use Pagebreaks, but if you're curious, read on!
+
+Rather than dynamically storing and reloading different global variables in your kernel, Pagebreaks manipulates the programs you write before they go to the compiler, changing the names of variables under the hood. For example, the variable "a" is actually stored as "pb_0_a" in the global state:
+
+When a variable is exported to be used between cells, a new variable "pb_export_a" is generated for each cell run (as a user, you don't have to worry about any of this, you can just use the name "a" as normal!). Because Python doesn't have a way to enforce that variables are read-only at compile time, Pagebreaks will check after your cell has run that the "pb_export_a" variable still matches the original "pb_0_a" variable. If it doesn't, Pagebreaks will revert the variables in your current pagebreak back to what they were before you ran the cell. 
+
+At the bottom of each pagebreak, the "export" footer allows variables to be exported _read-only_ (with some caveats) to all later cells:
+
+## Research
+
+This is an ongoing research project! I (Eric Rawn) and my collaborators at UC Berkeley are currently studying how Jupyter programmers use Pagebreaks in their everyday work. If you would be interested in participating, please fill out the interest form and we'll be in contact! If you have any questions, you can email me at erawn@berkeley.edu. 
+
 
 ## Requirements
 
 - JupyterLab >= 4.0.0
+- Pagebreaks is currently only available for IPython notebooks in Jupyter.
 
 ## Install
 
