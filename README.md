@@ -31,7 +31,7 @@ pip install pagebreaks
              <td align="center" width="40%"><img width="377" alt="Screenshot 2024-07-01 at 11 11 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/096f4ea1-be32-4841-bf7b-d2e8341f86f1">
     </tr>
           <tr>
-                  <td align="left">To check out the current state of the notebook, you can use the <code>%who_pb</code> IPython magic:</td>
+                  <td align="left">To check out the current state of the notebook, you can use the <code>%who_pb</code> IPython magic. If the magic is run in a Pagebreak in which an exported variable is available to be called (i.e. the variable is exported from a previous pagebreak, but not a later one), it will list under <code>Export Exist?</code> as <code>True</code></td>
              <td align="center" width="40%"><img width="585" alt="who_pb" src="https://github.com/erawn/pagebreaks/assets/26943712/7ed8644b-fb14-41a0-b89a-eaa1a85d04be">
     </tr>
             <tr>
