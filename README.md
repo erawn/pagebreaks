@@ -1,9 +1,49 @@
 # Pagebreaks : Scope Boundaries for Jupyter Notebooks
 
-Pagebreaks is a research project exploring how notebook programming enviornments could support scope boundaries between _cells_. Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook:
+Pagebreaks is a research project exploring how notebook programming enviornments could support scope boundaries between _cells_. It is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates _scope boundaries_ between groups of cells in a Jupyter Notebook, allowing cells within a pagebreak to share state as usual, but limiting 
 
-To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state. 
 
+
+
+
+
+<table align="center">
+      <colgroup>
+       <col span="1" style="width: 50%;">
+       <col span="1" style="width: 50%;">
+    </colgroup>
+    <tr>
+            <td align="center"><img width="600" alt="showscopebound" src="https://github.com/erawn/pagebreaks/assets/26943712/d8552e7a-c151-4bb4-98a6-40e7090902a3">
+        <td align="left">Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook:.</td>
+    </tr>
+      <tr>
+             <td align="center"><img width="449"  align="right" alt="showeditexport" src="https://github.com/erawn/pagebreaks/assets/26943712/0f37a240-6052-4195-836a-72d041391c73">
+        <td align="left">To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state.</td>
+    </tr>
+</table>
+|   To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state.   | ![export](https://github.com/erawn/pagebreaks/assets/26943712/5d63dcf1-2d01-4301-b8c4-34358cdf7723)|
+|----------| ----------|
+| hi there | tes|
+
+<br clear="left"/>
+
+Exported variables become read-only*, and are only accessible for _later_ cells in the notebook:
+
+
+
+<br clear="left"/>
+
+To check out the current state of the notebook, you can use the ```%who_pb"``` IPython magic:
+
+<img width="585" align="right" alt="who_pb" src="https://github.com/erawn/pagebreaks/assets/26943712/7ed8644b-fb14-41a0-b89a-eaa1a85d04be">
+
+
+Modules remain global, so you only have to import them once:
+
+<img width="955" align="right" alt="packages_are_global" src="https://github.com/erawn/pagebreaks/assets/26943712/736388a9-0dc8-4efb-b4ae-0fd942b7b1f4">
+
+
+*Because Python doesn't have a built-in way to ensure read-only variables, we check for redefinitions at the AST level and dynamically after each cell run, checking to see if the value has changed.
 
 ## Details
 
