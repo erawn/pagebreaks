@@ -14,7 +14,6 @@ To install the extension, execute:
 pip install pagebreaks
 ```
 
-
 ## The Interface
 
 <table align="center">
@@ -28,7 +27,7 @@ pip install pagebreaks
     </tr>
         <tr>
                   <td align="left">Exported variables continue to be readable and writeable in their own Pagebreak, as usual.  After that Pagebreak, later cells can read but not write the exported variable.  Before that Pagebreak, cells can neither read nor write the exported variable.</td>
-             <td align="center" width="40%"><img width="377" alt="Screenshot 2024-07-01 at 11 11 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/096f4ea1-be32-4841-bf7b-d2e8341f86f1">
+             <td align="center" width="40%"><img width="363" alt="Screenshot 2024-07-01 at 2 45 00 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/a16d139a-5e24-4f0b-8999-7c759c7a09fa">
     </tr>
           <tr>
                   <td align="left">To check out the current state of the notebook, you can use the <code>%who_pb</code> IPython magic. If the magic is run in a Pagebreak in which an exported variable is available to be called (i.e. the variable is exported from a previous pagebreak, but not a later one), it will list under <code>Export Exist?</code> as <code>True</code>.</td>
