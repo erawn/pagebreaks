@@ -14,7 +14,7 @@ To install the extension, execute:
 pip install pagebreaks
 ```
 
-## The Interface
+## Overview
 
 <table align="center">
     <tr>
@@ -40,7 +40,7 @@ pip install pagebreaks
 
 <sub> *Because Python doesn't have a built-in way to ensure read-only variables, we check for redefinitions at the AST level and dynamically after each cell run, checking to see if the value has changed. </sub>
 
-## Details
+## Pagebreak Actions
 
 ### Making a New Pagebreak
 
@@ -68,7 +68,7 @@ For example:
 
 We've added the IPython magic ```%who_pb"```, which is a pagebreaks-specific version of ```%who_ls```. ```%who_pb"``` prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
 
-### How it works
+## How it works
 
 You shouldn't need to know what's going on under the hood to use Pagebreaks, but if you're curious, read on!
 
