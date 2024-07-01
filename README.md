@@ -24,7 +24,7 @@ pip install pagebreaks
     </tr>
       <tr>
                 <td align="left">To reference a variable defined in an earlier Pagebreak, add the variable to the “export” list at the bottom of the Pagebreak in which it was defined. Once it’s exported, later cells can read its value, but they can’t overwrite it</td>
-             <td align="center" width="30%"><img alt="Screenshot 2024-07-01 at 11 09 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/c10d1f0b-2290-4ca2-9106-5a226e5a7a4e">
+             <td align="center" width="30%"><img width="349" alt="Screenshot 2024-07-01 at 2 37 02 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/7b5038aa-7607-4c20-8fa1-b99535e24c19">
     </tr>
         <tr>
                   <td align="left">Exported variables become read-only, and are only accessible for later cells in the notebook</td>
