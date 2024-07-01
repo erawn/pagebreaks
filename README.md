@@ -3,8 +3,15 @@
 Pagebreaks is a research project which explores how notebook programming enviornments could support scope boundaries _around groups of cells_. It is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells in a Jupyter Notebook, allowing cells within a pagebreak to share state as usual, but preventing access from the rest of the notebook.
 
 ## This is a Research Project!
+Hi! My name is Eric Rawn. I’m a PhD student at UC Berkeley working with Prof. Sarah Chasins. I research how to make notebook programming environments better, and have built an extension for Jupyter notebooks which introduces scope boundaries to collections of cells. We’re interested in evaluating how this change to the notebook programming environment impacts real users, and so are running a 4-6 week study with folks who use Jupyter notebooks regularly. 
 
-I (Eric Rawn) and my collaborators at UC Berkeley are currently studying how Jupyter programmers use Pagebreaks in their everyday work. If you would be interested in participating, please fill out the [interest form](https://forms.gle/6x8wXnEKA12KnVyU6) and we'll be in contact! If you have any questions, you can email me at erawn@berkeley.edu. 
+Participants in the study would first install the extension in a passive data-gathering mode, allowing the extension to record information about how you use Jupyter notebooks without changing your programming environment. In the second half of the study, you’ll enable the extension and use it for your regular programming work. At the end, you’ll send us all of the data the tool collected, and we’ll interview you about your experience with the tool and your suggestions for how to make it better. Participants will be compensated for their time spent interviewing, at $30/hour. The [consent form](https://drive.google.com/file/d/1x2wYflUFg9Nwk6prcISxfZiIgD9q1Cse/view?usp=sharing) has detailed information about the study if you’re interested.   
+
+The extension will be released free and open-source after the study. If you like the extension, you’re of course welcome to continue using it after the study ends! 
+
+If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)
+
+If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to send this to anyone you might think is interested! 
 
 <!---
 To install the extension, execute:
