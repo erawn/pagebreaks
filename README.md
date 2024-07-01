@@ -6,13 +6,16 @@ Pagebreaks is a research project which explores how notebook programming enviorn
 
 I (Eric Rawn) and my collaborators at UC Berkeley are currently studying how Jupyter programmers use Pagebreaks in their everyday work. If you would be interested in participating, please fill out the [interest form](https://forms.gle/6x8wXnEKA12KnVyU6) and we'll be in contact! If you have any questions, you can email me at erawn@berkeley.edu. 
 
-## Install
-
+<!---
 To install the extension, execute:
-
 ```bash
 pip install pagebreaks
 ```
+-->
+
+## Install
+
+The extension will be on PyPi when the study begins. Hang tight until then! Thanks!
 
 ## Overview
 
