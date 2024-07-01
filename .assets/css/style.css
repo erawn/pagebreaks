@@ -11,7 +11,9 @@
         margin: 0;
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       }
-
+  table { table-layout: fixed; }
+    th+th { width: 70%; }
+    th+th+th { width: 15%; }
       .container { margin: 50px auto 40px auto; width: 600px; text-align: center; }
 
       a { color: #4183c4; text-decoration: none; }
