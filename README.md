@@ -11,7 +11,7 @@ The extension will be released free and open-source after the study. If you like
 
 If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)
 
-If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to send this to anyone you might think is interested! 
+If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to send this to anyone you think might be interested! 
 
 <!---
 To install the extension, execute:
