@@ -19,11 +19,11 @@ pip install pagebreaks
 
 <table align="center">
     <tr>
-              <td align="left">Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook:.</td>
+              <td align="left">Each "pagebreak" keeps top-level variables isolated, so that within a pagebreak you can reference variables between cells normally, but in the rest of the notebook those variables will be inaccessible:.</td>
             <td align="center" width="40%"><img width="600" alt="showscopebound" src="https://github.com/erawn/pagebreaks/assets/26943712/d8552e7a-c151-4bb4-98a6-40e7090902a3">
     </tr>
       <tr>
-                <td align="left">To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to later cells in a read-only state.</td>
+                <td align="left">To reference a variable defined in an earlier Pagebreak, add the variable to the “export” list at the bottom of the Pagebreak in which it was defined. Once it’s exported, later cells can read its value, but they can’t overwrite it</td>
              <td align="center" width="30%"><img alt="Screenshot 2024-07-01 at 11 09 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/c10d1f0b-2290-4ca2-9106-5a226e5a7a4e">
     </tr>
         <tr>
