@@ -19,11 +19,11 @@ pip install pagebreaks
 
 <table align="center">
     <tr>
-              <td align="left">Each "pagebreak" keeps top-level variables isolated, so that within a pagebreak you can reference variables between cells normally, but in the rest of the notebook those variables will be inaccessible:.</td>
+              <td align="left">Each "pagebreak" keeps top-level variables isolated, so that within a pagebreak you can reference variables between cells normally, but in the rest of the notebook those variables will be inaccessible:</td>
             <td align="center" width="40%"><img width="600" alt="showscopebound" src="https://github.com/erawn/pagebreaks/assets/26943712/d8552e7a-c151-4bb4-98a6-40e7090902a3">
     </tr>
       <tr>
-                <td align="left">To reference a variable defined in an earlier Pagebreak, add the variable to the “export” list at the bottom of the Pagebreak in which it was defined. Once it’s exported, later cells can read its value, but they can’t overwrite it</td>
+                <td align="left">To reference a variable defined in an earlier Pagebreak, add the variable to the “export” list at the bottom of the Pagebreak in which it was defined. Once it’s exported, later cells can read its value, but they can’t overwrite it.</td>
              <td align="center" width="30%"><img width="349" alt="Screenshot 2024-07-01 at 2 37 02 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/7b5038aa-7607-4c20-8fa1-b99535e24c19">
     </tr>
         <tr>
@@ -31,7 +31,7 @@ pip install pagebreaks
              <td align="center" width="40%"><img width="377" alt="Screenshot 2024-07-01 at 11 11 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/096f4ea1-be32-4841-bf7b-d2e8341f86f1">
     </tr>
           <tr>
-                  <td align="left">To check out the current state of the notebook, you can use the <code>%who_pb</code> IPython magic. If the magic is run in a Pagebreak in which an exported variable is available to be called (i.e. the variable is exported from a previous pagebreak, but not a later one), it will list under <code>Export Exist?</code> as <code>True</code></td>
+                  <td align="left">To check out the current state of the notebook, you can use the <code>%who_pb</code> IPython magic. If the magic is run in a Pagebreak in which an exported variable is available to be called (i.e. the variable is exported from a previous pagebreak, but not a later one), it will list under <code>Export Exist?</code> as <code>True</code>.</td>
              <td align="center" width="40%"><img width="585" alt="who_pb" src="https://github.com/erawn/pagebreaks/assets/26943712/7ed8644b-fb14-41a0-b89a-eaa1a85d04be">
     </tr>
             <tr>
