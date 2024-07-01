@@ -76,16 +76,22 @@ Rather than dynamically storing and reloading different global variables in your
 
 <table align="center">
     <tr>
-              <td align="left">For example, the variable "a" is actually stored as "pb_0_a" in the global state:</td>
+              <td align="left">For example, the variable <code>a</code> is actually stored as <code>pb_0_a</code> in the global state, because it is in Pagebreak <code>0</code>.</td>
       <td align="center" width="40%"><img width="274" alt="Screenshot 2024-07-01 at 2 47 14 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/f1bfeb62-ccf4-4abe-b690-d4076d684e71">
     </tr>
 </table>
 
 
 
-When a variable is exported to be used between cells, a new variable "pb_export_a" is generated for each cell run (as a user, you don't have to worry about any of this, you can just use the name "a" as normal!). Because Python doesn't have a way to enforce that variables are read-only at compile time, Pagebreaks will check after your cell has run that the "pb_export_a" variable still matches the original "pb_0_a" variable. If it doesn't, Pagebreaks will revert the variables in your current pagebreak back to what they were before you ran the cell. 
+When a variable is exported to be used between pagebreaks, a new variable <code>pb_export_b</code> is generated for each cell run (as a user, you don't have to worry about any of this, you can just use <code>a</code> and <code>b</code> as normal!). Because Python doesn't have a way to enforce that variables are read-only at compile time, Pagebreaks will check after your cell has run that the <code>pb_export_b</code> variable still matches the original <code>pb_0_b</code> variable. If it doesn't, Pagebreaks will revert the variables in your current pagebreak back to what they were before you ran the cell. 
+<table align="center">
+    <tr>
+              <td align="left">Because <code>b</code> is accessible in the second pagebreak because it's been exported, a <code>pb_export_b</code> varaible is generated for later cells to reference, preventing those cells from modifying our real <code>b</code> variable, which is <code>pb_0_b</code></td>
+      <td align="center" width="40%"><img width="495" alt="Screenshot 2024-07-01 at 2 49 40 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/5c2be0d1-f698-420c-a744-ee63126de5c5">
+    </tr>
+</table>
 
-At the bottom of each pagebreak, the "export" footer allows variables to be exported _read-only_ (with some caveats) to all later cells:
+
 
 
 ## Requirements
