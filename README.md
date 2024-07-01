@@ -27,7 +27,7 @@ pip install pagebreaks
              <td align="center" width="30%"><img width="349" alt="Screenshot 2024-07-01 at 2 37 02 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/7b5038aa-7607-4c20-8fa1-b99535e24c19">
     </tr>
         <tr>
-                  <td align="left">Exported variables become read-only, and are only accessible for later cells in the notebook</td>
+                  <td align="left">Exported variables continue to be readable and writeable in their own Pagebreak, as usual.  After that Pagebreak, later cells can read but not write the exported variable.  Before that Pagebreak, cells can neither read nor write the exported variable.</td>
              <td align="center" width="40%"><img width="377" alt="Screenshot 2024-07-01 at 11 11 27 AM" src="https://github.com/erawn/pagebreaks/assets/26943712/096f4ea1-be32-4841-bf7b-d2e8341f86f1">
     </tr>
           <tr>
