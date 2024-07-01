@@ -46,8 +46,15 @@ pip install pagebreaks
 
 New pagebreaks are made by pressing this button: <img width="49" alt="Screenshot 2024-07-01 at 1 50 30 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/bad69156-2286-475e-8ff1-9de49e9399e8"> on the "Export" cell of a pagebreak at the bottom. 
 
+<img width="558" alt="makenewpb" src="https://github.com/erawn/pagebreaks/assets/26943712/7df465b9-4266-4c51-ae9a-5e1ca77b995a">
+
+
 ### Merging Pagebreaks
-Instead of deleting Pagebreaks, you can merge the cells of a pagebreak into the one above it with this button: <img width="60" alt="Screenshot 2024-07-01 at 1 50 56 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/0b9c22d8-65ea-4029-8dcc-e40d22dd7a22">
+Instead of deleting Pagebreaks, you can merge the cells of a pagebreak into the one above it with:<img width="50" alt="Screenshot 2024-07-01 at 1 50 56 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/0b9c22d8-65ea-4029-8dcc-e40d22dd7a22">
+
+
+
+<img width="562" alt="mergepb" src="https://github.com/erawn/pagebreaks/assets/26943712/ccfaf0da-0c34-4f61-abe1-3d27f2638e31">
 
 For example:
 
