@@ -4,26 +4,48 @@ Pagebreaks is a research project exploring how notebook programming enviornments
 
 
 
-
-
+  <table>
+      <tr>
+        <th>From</th>
+        <th>Subject</th>
+        <th>Date</th>
+      </tr>
+    </table>
 
 <table align="center">
       <colgroup>
        <col span="1" style="width: 50%;">
        <col span="1" style="width: 50%;">
     </colgroup>
+      <tbody>
     <tr>
             <td align="center"><img width="600" alt="showscopebound" src="https://github.com/erawn/pagebreaks/assets/26943712/d8552e7a-c151-4bb4-98a6-40e7090902a3">
         <td align="left">Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook:.</td>
     </tr>
       <tr>
-             <td align="center"><img width="449"  align="right" alt="showeditexport" src="https://github.com/erawn/pagebreaks/assets/26943712/0f37a240-6052-4195-836a-72d041391c73">
+             <td align="center"><img width="449"  align="right" alt="showeditexport" src="https://github.com/erawn/pagebreaks/assets/26943712/0f37a240-6052-4195-836a-72d041391c73"/>
         <td align="left">To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state.</td>
     </tr>
+      </tbody>
 </table>
-|   To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state.   | ![export](https://github.com/erawn/pagebreaks/assets/26943712/5d63dcf1-2d01-4301-b8c4-34358cdf7723)|
-|----------| ----------|
-| hi there | tes|
+
+<table class="mytable">
+    <tr>
+        <th>From</th>
+        <th>Subject</th>
+        <th>Date</th>
+    </tr>
+</table>
+
+<style>
+    .mytable td, .mytable th { width:15%; }
+    .mytable td + td, .mytable th + th { width:70%; }
+    .mytable td + td + td, .mytable th + th + th { width:15%; }
+</style>
+
+|   <div style="width:90px">To reference variables between Pagebreaks, add the variable to the "export" list at the bottom, and it will become accessible to _later_ cells in a read-only state. </div>  | ![export](https://github.com/erawn/pagebreaks/assets/26943712/5d63dcf1-2d01-4301-b8c4-34358cdf7723){width=800px}|
+|--------------| ------------------------------|
+| Each "pagebreak" keeps top-level ("global" for python) variables isolated, so that within a pagebreak you can use Jupyter notebooks normally (referencing variables between cells), but preventing those variables from being accessed (by default) in the rest of the notebook: | <img width="800" alt="showscopebound" src="https://github.com/erawn/pagebreaks/assets/26943712/d8552e7a-c151-4bb4-98a6-40e7090902a3"> |
 
 <br clear="left"/>
 
