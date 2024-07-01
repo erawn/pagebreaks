@@ -4,7 +4,7 @@ Pagebreaks is a research project exploring how notebook programming enviornments
 
 ## This is a Research Project!
 
-I (Eric Rawn) and my collaborators at UC Berkeley are currently studying how Jupyter programmers use Pagebreaks in their everyday work. If you would be interested in participating, please fill out the interest form and we'll be in contact! If you have any questions, you can email me at erawn@berkeley.edu. 
+I (Eric Rawn) and my collaborators at UC Berkeley are currently studying how Jupyter programmers use Pagebreaks in their everyday work. If you would be interested in participating, please fill out the [interest form](https://forms.gle/6x8wXnEKA12KnVyU6) and we'll be in contact! If you have any questions, you can email me at erawn@berkeley.edu. 
 
 ## Install
 
@@ -84,8 +84,6 @@ At the bottom of each pagebreak, the "export" footer allows variables to be expo
 
 - JupyterLab >= 4.0.0
 - Pagebreaks is currently only available for IPython notebooks in Jupyter.
-
-
 
 ## Uninstall
 
