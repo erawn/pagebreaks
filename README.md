@@ -72,10 +72,11 @@ We've added the IPython magic ```%who_pb"```, which is a pagebreaks-specific ver
 
 You shouldn't need to know what's going on under the hood to use Pagebreaks, but if you're curious, read on!
 
+Rather than dynamically storing and reloading different global variables in your kernel, Pagebreaks manipulates the programs you write before they go to the interpreter, changing the names of variables under the hood. 
 
 <table align="center">
     <tr>
-              <td align="left">Rather than dynamically storing and reloading different global variables in your kernel, Pagebreaks manipulates the programs you write before they go to the interpreter, changing the names of variables under the hood. For example, the variable "a" is actually stored as "pb_0_a" in the global state:</td>
+              <td align="left">For example, the variable "a" is actually stored as "pb_0_a" in the global state:</td>
       <td align="center" width="40%"><img width="274" alt="Screenshot 2024-07-01 at 2 47 14 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/f1bfeb62-ccf4-4abe-b690-d4076d684e71">
     </tr>
 </table>
