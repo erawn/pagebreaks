@@ -1,6 +1,6 @@
 # Pagebreaks : Scope Boundaries for Jupyter Notebooks
 
-Pagebreaks is a research project which explores how notebook programming enviornments could support scope boundaries _around groups of cells_. It is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells in a Jupyter Notebook, allowing cells within a pagebreak to share state as usual, but preventing access from the rest of the notebook.
+Pagebreaks is a research project which explores how notebook programming enviornments could support scope boundaries _around groups of cells_. It is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells in a Jupyter Notebook, allowing cells within a pagebreak to share state as usual, but keeping state isolated within the cell. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells. 
 
 ## This is a Research Project!
 Hi! My name is Eric Rawn. I’m a PhD student at UC Berkeley working with Prof. Sarah Chasins. I research how to make notebook programming environments better, and have built an extension for Jupyter notebooks which introduces scope boundaries to collections of cells. We’re interested in evaluating how this change to the notebook programming environment impacts real users, and so are running a 4-6 week study with folks who use Jupyter notebooks regularly. 
