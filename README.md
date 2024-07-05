@@ -2,16 +2,17 @@
 
 Pagebreaks is a research project which explores how notebook programming enviornments could support scope boundaries _around groups of cells_. It is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells in a Jupyter Notebook, allowing cells within a pagebreak to share state as usual, but keeping state isolated within the cell. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells. 
 
-## This is a Research Project!
-Hi! My name is Eric Rawn. I’m a PhD student at UC Berkeley working with Prof. Sarah Chasins. I research how to make notebook programming environments better, and have built an extension for Jupyter notebooks which introduces scope boundaries to collections of cells. We’re interested in evaluating how this change to the notebook programming environment impacts real users, and so are running a 4-6 week study with folks who use Jupyter notebooks regularly. 
+## Participate in Research!
 
-Participants in the study would first install the extension in a passive data-gathering mode, allowing the extension to record information about how you use Jupyter notebooks without changing your programming environment. In the second half of the study, you’ll enable the extension and use it for your regular programming work. At the end, you’ll send us all of the data the tool collected, and we’ll interview you about your experience with the tool and your suggestions for how to make it better. Participants will be compensated for their time spent interviewing, at $30/hour. The [consent form](https://drive.google.com/file/d/1x2wYflUFg9Nwk6prcISxfZiIgD9q1Cse/view?usp=sharing) has detailed information about the study if you’re interested.   
+Hi! My name is Eric Rawn. I’m a PhD student at UC Berkeley working with my advisor Professor Sarah Chasins. I research how to make notebook programming environments better, and have been working on an extension for notebooks which introduces scope boundaries to collections of cells. We think this might help programmers avoid some of the pain points with notebooks, but we won’t know until we study its use in the real world. The goal is to make it easier to keep variables tidy within a notebook without requiring programmers to change how they like to use notebooks. We’re interested in evaluating how our extension aids how real users program (you all!), and so we’re running a 4-6 week study with folks who use Jupyter notebooks regularly in their everyday programming.
 
-The extension will be released free and open-source after the study. If you like the extension, you’re of course welcome to continue using it after the study ends! 
+The extension will log some usage data locally on your machine, which you'll send to me at the end of the study. We'll then spend about an hour chatting about your experience, the kind of work you do daily, how you use notebooks, and any other thoughts or feedback you have. Participants will be compensated for their time spent interviewing, at $30/hour. The [consent form](https://drive.google.com/file/d/1x2wYflUFg9Nwk6prcISxfZiIgD9q1Cse/view?usp=sharing) has detailed information about the study if you’re interested. I care a lot about protecting the privacy of my participants, and so a lot of the consent form (and our first chat together at the beginning of the study) is dedicated to explaining exactly what data will be collected, how it will be used, and addressing any questions or concerns.
 
-If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)
+The extension is already open source on Github (linked below), but a full release will be out on PyPi after we can incorporate what we learned from the study. If you like the extension, you’re of course welcome to continue using it after the study ends! 
 
-If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to send this to anyone you think might be interested! 
+**If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)**
+
+If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to forward this to anyone you think might be interested! Thanks!
 
 <!---
 To install the extension, execute:
