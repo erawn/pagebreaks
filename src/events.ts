@@ -1,5 +1,5 @@
 // import { IEditorServices } from '@jupyterlab/codeeditor';
-import { Notebook } from '@jupyterlab/notebook';
+import { Notebook, NotebookPanel } from '@jupyterlab/notebook';
 
 import { Cell, ICodeCellModel, MarkdownCell } from '@jupyterlab/cells';
 import * as nbformat from '@jupyterlab/nbformat';
@@ -9,13 +9,14 @@ import { MimeData } from '@lumino/coreutils';
 import { Drag } from '@lumino/dragdrop';
 import { h, VirtualDOM } from '@lumino/virtualdom';
 import '../style/index.css';
+import { activeManager } from './activeManager';
 import {
   DROP_TARGET_CLASS_BOTTOM,
   PAGEBREAK_CELL_TAG,
   PAGEBREAK_HEADER_TAG
 } from './constants';
+import { sendLog } from './schema';
 import { schemaManager } from './schemaManager';
-import * as Utils from './utils';
 
 const DROP_TARGET_CLASS = 'jp-mod-dropTarget';
 const DROP_SOURCE_CLASS = 'jp-mod-dropSource';
@@ -24,7 +25,7 @@ const NB_CELL_CLASS = 'jp-Notebook-cell';
 const DRAG_THRESHOLD = 5;
 const DRAG_IMAGE_CLASS = 'jp-dragImage';
 
-const MARKDOWN_COLLAPSED_CLASS = 'jp-MarkdownHeadingCollapsed';
+// const MARKDOWN_COLLAPSED_CLASS = 'jp-MarkdownHeadingCollapsed';
 /**
  * The class name added to singular drag images
  */
@@ -54,19 +55,41 @@ export class pagebreakEventHandlers {
   } | null = null;
   _mouseMode: 'select' | 'couldDrag' | null = null;
   _notebook: Notebook;
+  _notebookPanel: NotebookPanel;
   _manager: schemaManager;
+  _activeManager: activeManager;
 
-  constructor(notebook: Notebook, manager: schemaManager) {
+  constructor(
+    notebookPanel: NotebookPanel,
+    manager: schemaManager,
+    activeManager: activeManager
+  ) {
     this._manager = manager;
-    this._notebook = notebook;
-    this.addListeners();
+    this._activeManager = activeManager;
+    this._notebook = notebookPanel.content;
+    this._notebookPanel = notebookPanel;
+    if (this._activeManager.isActive()) {
+      this.addListeners();
+    }
+    this.addStudyListeners();
   }
 
   public get currentNotebook(): Notebook {
     return this._notebook;
   }
-  update() {
-    this.addListeners();
+  update(notebookPanel: NotebookPanel) {
+    this._notebook = notebookPanel.content;
+    this._notebookPanel = notebookPanel;
+    if (this._activeManager.isActive()) {
+      this.addListeners();
+    }
+    this.addStudyListeners();
+  }
+  addStudyListeners() {
+    this._notebook.outerNode.addEventListener('scrollend', this);
+  }
+  removeStudyListeners() {
+    this._notebook.outerNode.removeEventListener('scrollend', this);
   }
 
   addListeners() {
@@ -82,13 +105,16 @@ export class pagebreakEventHandlers {
   removeNotebookListeners() {
     const notebook = this._notebook;
     notebook.node.removeEventListener('lm-dragover', this._notebook, true);
+    notebook.node.removeEventListener('lm-dragover', this._notebook);
     notebook.node.removeEventListener('lm-drop', this._notebook, true);
+    notebook.node.removeEventListener('lm-drop', this._notebook);
     notebook.node.removeEventListener('mousemove', this._notebook, true);
     notebook.node.removeEventListener('mousedown', this._notebook, true);
     notebook.node.removeEventListener('mousedown', this._notebook);
   }
   removeListeners() {
     const node = this._notebook.node;
+    window.removeEventListener('scrollend', this);
     node.removeEventListener('mousedown', this);
     node.removeEventListener('mousedown', this, true);
     node.removeEventListener('lm-dragover', this, true);
@@ -97,11 +123,16 @@ export class pagebreakEventHandlers {
     document.removeEventListener('mouseup', this, true);
   }
 
-  switchNotebooks(newNotebook: Notebook) {
-    console.log('switching listeners');
+  switchNotebooks(newNotebookPanel: NotebookPanel) {
+    // console.log('switching listeners');
     this.removeListeners();
-    this._notebook = newNotebook;
-    this.addListeners();
+    this.removeStudyListeners();
+    this._notebook = newNotebookPanel.content;
+    this._notebookPanel = newNotebookPanel;
+    if (this._activeManager.isActive()) {
+      this.addListeners();
+    }
+    this.addStudyListeners();
   }
   handleEvent(event: Event): void {
     if (!this._notebook.model) {
@@ -109,6 +140,12 @@ export class pagebreakEventHandlers {
       return;
     }
     switch (event.type) {
+      case 'scroll':
+        console.log('SCROLLTOP');
+        break;
+      case 'scrollend':
+        this.handleScrollEnd(event as MouseEvent);
+        break;
       case 'mousedown':
         if (event.eventPhase === Event.CAPTURING_PHASE) {
           this.handleMouseDownCapture(event as MouseEvent);
@@ -283,6 +320,33 @@ export class pagebreakEventHandlers {
   //     //       break;
   //     //   }
   // }
+  handleScrollEnd(event: MouseEvent): void {
+    // console.log('SCROLLEND', event);
+    const onScreen = this._notebook.widgets
+      .map((cell, index) => {
+        const rect = cell.node.getBoundingClientRect();
+        const isVisible =
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <=
+            (window.innerHeight ||
+              document.documentElement
+                .clientHeight) /* or $(window).height() */ &&
+          rect.right <=
+            (window.innerWidth || document.documentElement.clientWidth);
+        return [index, isVisible];
+      })
+      .filter(value => value[1])
+      .sort((a, b) => (a[0] as number) - (b[0] as number));
+    const firstVisible = onScreen.at(0)?.at(0);
+    const lastVisible = onScreen.at(-1)?.at(0);
+    console.log(firstVisible, lastVisible);
+    sendLog(
+      this._notebookPanel,
+      'SCROLLEND [' + firstVisible + ',' + lastVisible + ']',
+      this._activeManager
+    );
+  }
   handleDragLeave(event: Drag.Event): void {
     if (!event.mimeData.hasData(JUPYTER_CELL_MIME)) {
       return;
@@ -493,13 +557,31 @@ export class pagebreakEventHandlers {
             const schema = this._manager?.previousSchema;
             if (isHeader) {
               headerIndex = targetIndex;
-              const headerCell = this._notebook.widgets[targetIndex];
-              const scopeNum = schema?.cellsToScopes?.[headerCell.model.id];
+              const scopeNum = schema?.cellsToScopes?.[targetCell.model.id];
               const matchingPbIndex = schema?.scopes.find(
                 scope => scope.pbNum === scopeNum
               )?.index;
               if (matchingPbIndex) {
                 footerIndex = matchingPbIndex;
+                if (
+                  targetCell.model.type === ('markdown' as nbformat.CellType)
+                ) {
+                  const mdCell = targetCell as MarkdownCell;
+                  if (mdCell.headingCollapsed) {
+                    const lastCollapsed = mdCell.numberChildNodes + targetIndex;
+                    if (footerIndex !== lastCollapsed) {
+                      console.error(
+                        'collapsed heading malformed',
+                        targetIndex,
+                        footerIndex,
+                        lastCollapsed
+                      );
+                      return;
+                    }
+                  }
+                } else {
+                  return;
+                }
               }
             } else if (isFooter) {
               footerIndex = targetIndex;
@@ -570,6 +652,7 @@ export class pagebreakEventHandlers {
   }
   handleDragOver(event: Drag.Event): void {
     const notebook = this._notebook;
+    console.log('dragover');
     if (!event.mimeData.hasData(JUPYTER_CELL_MIME)) {
       return;
     }
@@ -601,15 +684,30 @@ export class pagebreakEventHandlers {
       );
     }
     const targetWidget = notebook.widgets[index];
-    const sourceElements =
-      notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [isValid] = this.isValidDrop(
-      targetWidget,
-      sourceElements,
-      isBottom,
-      notebook
-    );
+    // const sourceElements =
+    //   notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
+    const toMove: Cell[] = event.mimeData.getData('internal:cells');
+
+    // For collapsed markdown headings with hidden "child" cells, move all
+    // child cells as well as the markdown heading.
+    const cell = toMove[toMove.length - 1];
+    if (cell instanceof MarkdownCell && cell.headingCollapsed) {
+      const nextParent = NotebookActions.findNextParentHeading(
+        cell,
+        this._notebook
+      );
+      if (nextParent > 0) {
+        const index = findIndex(
+          this._notebook.widgets,
+          (possibleCell: Cell) => {
+            return cell.model.id === possibleCell.model.id;
+          }
+        );
+        toMove.push(...this._notebook.widgets.slice(index + 1, nextParent));
+      }
+    }
+    console.log('toMove:', toMove);
+    const isValid = this.isValidDrop(targetWidget, toMove, isBottom, notebook);
     if (isValid) {
       // console.log('IsBottom', isBottom);
       if (isBottom) {
@@ -622,92 +720,282 @@ export class pagebreakEventHandlers {
 
   isValidDrop(
     targetWidget: Cell,
-    sourceElements: HTMLCollectionOf<Element>,
+    toMove: Cell[],
     isBottom: boolean,
     notebook: Notebook
-  ): [boolean, boolean] {
+  ): boolean {
     //isValid, isPagebreak
     //search for header and footer
 
-    let collapsedIndex = -1;
-    for (let i = 0; i < sourceElements.length; i++) {
-      const elem = sourceElements.item(i);
-      if (elem?.classList.contains(MARKDOWN_COLLAPSED_CLASS)) {
-        // console.log('collapsed source');
-        collapsedIndex = this.findCell(elem as HTMLElement, notebook);
-      }
-    }
+    // let collapsedIndex = -1;
+    // // for (let i = 0; i < sourceElements.length; i++) {
+    // //   const elem = sourceElements.item(i);
+    // //   if (elem?.classList.contains(MARKDOWN_COLLAPSED_CLASS)) {
+    // //     collapsedIndex = this.findCell(elem as HTMLElement, notebook);
+    // //   }
+    // // }
+    // const cell = toMove[toMove.length - 1];
+    // if (cell instanceof MarkdownCell && cell.headingCollapsed) {
+    //   collapsedIndex = findIndex(notebook.widgets, (searchCell: Cell) => {
+    //     return cell.model.id === searchCell.model.id;
+    //   });
+    // }
 
-    let header = -1;
-    let footer = -1;
+    // let header = -1;
+    // let footer = -1;
 
-    if (collapsedIndex !== -1) {
-      console.log('collapsed Dragover');
-      // const headerCell = notebook.widgets[collapsedIndex];
-      //the actual values dont matter as long as they aren't -1
-      header = 0;
-      footer = 0;
-    }
-    for (let i = 0; i < sourceElements.length; i++) {
-      const elem = sourceElements.item(i);
-      if (elem?.classList.contains(PAGEBREAK_HEADER_TAG)) {
-        header = i;
-      }
-      if (elem?.classList.contains(PAGEBREAK_CELL_TAG)) {
-        footer = i;
-      }
-    }
+    // if (collapsedIndex !== -1) {
+    //   const headerCell = notebook.widgets.at(collapsedIndex) as MarkdownCell;
+    //   for (
+    //     let ind = collapsedIndex;
+    //     ind < collapsedIndex + headerCell.numberChildNodes + 1;
+    //     ind++
+    //   ) {
+    //     const cell = notebook.widgets.at(ind);
+    //     if (cell?.model.getMetadata('pagebreak') === true) {
+    //       //if we find two headers in the collapse
+    //       if (footer !== -1) {
+    //         return [false, true];
+    //       } else {
+    //         footer = ind - collapsedIndex;
+    //       }
+    //     }
+    //     if (cell?.model.getMetadata('pagebreakheader') === true) {
+    //       if (header !== -1) {
+    //         return [false, true];
+    //       } else {
+    //         header = ind - collapsedIndex;
+    //       }
+    //     }
+    //   }
+    // } else {
+    //   // for (let i = 0; i < sourceElements.length; i++) {
+    //   //   const elem = sourceElements.item(i);
+    //   //   if (elem?.classList.contains(PAGEBREAK_HEADER_TAG)) {
+    //   //     header = i;
+    //   //   }
+    //   //   if (elem?.classList.contains(PAGEBREAK_CELL_TAG)) {
+    //   //     footer = i;
+    //   //   }
+    //   // }
+    // }
+    const header = toMove.findIndex(cell =>
+      cell.hasClass(PAGEBREAK_HEADER_TAG)
+    );
+    const footer = toMove.findIndex(cell => cell.hasClass(PAGEBREAK_CELL_TAG));
+    const selectionLength = toMove.length;
+    console.log(
+      'header, footer',
+      'selectionlength',
+      header,
+      footer,
+      selectionLength
+    );
 
-    //if we're only dragging a header or footer alone
-    if (
-      (header !== -1 || footer !== -1) &&
-      sourceElements.length === 1 &&
-      collapsedIndex === -1
-    ) {
-      return [false, true];
+    const headerIsValid = header !== -1;
+    const footerIsValid = footer !== -1;
+    console.log(headerIsValid, footerIsValid);
+    //if we're only dragging a header or footer without the other
+    if ((headerIsValid || footerIsValid) && headerIsValid !== footerIsValid) {
+      return false;
     }
-    //if we're dragging a header or footer with other cells (invalid!)
-    if (
-      ((header !== -1 && footer === -1) || (header === -1 && footer !== -1)) &&
-      sourceElements.length > 1
-    ) {
-      return [false, false];
-    }
-    //if we're dragging a full pagebreak
-    if (header !== -1 && footer !== -1) {
+    // //if we're dragging a header or footer with other cells (invalid!)
+    // if (
+    //   ((headerIsValid && !footerIsValid) ||
+    //     (!headerIsValid && footerIsValid)) &&
+    //   (selectionLength > 1 || collapsedIndex !== -1)
+    // ) {
+    //   return [false, false];
+    // }
+    //if we're dragging a full pagebreak (and ONLY a full pagebreak)
+    if (header === 0 && footer === selectionLength - 1) {
       //only drop in valid locations (headers or bottom footer)
       if (
-        targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG) ||
-        targetWidget.node.classList.contains(MARKDOWN_COLLAPSED_CLASS) ||
-        (isBottom && targetWidget.node.classList.contains(PAGEBREAK_CELL_TAG))
+        targetWidget.hasClass(PAGEBREAK_HEADER_TAG) ||
+        (isBottom && targetWidget.hasClass(PAGEBREAK_CELL_TAG))
       ) {
-        console.log('valid drop');
-        return [true, true];
+        console.log('valid drop', header, footer);
+        return true;
       } else {
-        return [false, true];
+        return false;
       }
     }
     //if we're only dragging cells
-    if (header === -1 && footer === -1) {
-      if (targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG)) {
-        return [false, false];
-      } else {
-        return [true, false];
-      }
+    if (!headerIsValid && !footerIsValid) {
+      return true;
+      // if (targetWidget.node.classList.contains(PAGEBREAK_HEADER_TAG)) {
+      //   // TODO: Check if the cells are md or raw, if so, allow them to be dragged between pbs
+      //   return false;
+      // } else {
+      //   return true;
+      // }
     }
+
     //we shouldn't reach this
     console.log(
       'Found INVALID Drag State!',
       'header = ',
       header,
       'footer = ',
-      footer
+      footer,
+      selectionLength
     );
-    return [false, false];
+    return false;
   }
 
+  // handleDrop(event: Drag.Event): void {
+  //   const notebook = this._notebook;
+  //   if (!event.mimeData.hasData(JUPYTER_CELL_MIME)) {
+  //     return;
+  //   }
+  //   event.preventDefault();
+  //   event.stopPropagation();
+  //   if (event.proposedAction === 'none') {
+  //     event.dropAction = 'none';
+  //     return;
+  //   }
+
+  //   let target = event.target as HTMLElement;
+
+  //   //PAGEBREAK CHANGE: check if the source and target are valid
+  //   let index = this.findCell(target, notebook);
+  //   let isBottom = false;
+  //   if (index === -1) {
+  //     index = notebook.widgets.length - 1;
+  //     isBottom = true;
+  //   }
+  //   const targetWidget = notebook.widgets[index];
+  //   const sourceElements =
+  //     notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
+  //   const [isValid, isPagebreak] = this.isValidDrop(
+  //     targetWidget,
+  //     sourceElements,
+  //     isBottom,
+  //     notebook
+  //   );
+  //   if (!isValid) {
+  //     if (this._notebook.selectedCells.length > 1) {
+  //       this._notebook.deselectAll();
+  //       this._notebook.select(this._notebook.activeCell!);
+  //     }
+  //     return;
+  //   }
+
+  //   notebook.widgets.forEach(cell =>
+  //     cell.node.classList.remove(DROP_TARGET_CLASS_BOTTOM)
+  //   );
+  //   //PAGEBREAK CHANGE: check if the source and target are valid
+
+  //   while (target && target.parentElement) {
+  //     if (target.classList.contains(DROP_TARGET_CLASS)) {
+  //       target.classList.remove(DROP_TARGET_CLASS);
+  //       target.classList.remove(DROP_TARGET_CLASS_BOTTOM);
+  //       break;
+  //     }
+  //     target = target.parentElement;
+  //   }
+
+  //   // Model presence should be checked before calling event handlers
+  //   const model = notebook.model!;
+
+  //   const source: Notebook = event.source;
+  //   if (source === notebook) {
+  //     // Handle the case where we are moving cells within
+  //     // the same notebook.
+  //     event.dropAction = 'move';
+  //     const toMove: Cell[] = event.mimeData.getData('internal:cells');
+
+  //     // For collapsed markdown headings with hidden "child" cells, move all
+  //     // child cells as well as the markdown heading.
+  //     const cell = toMove[toMove.length - 1];
+  //     let recollapse = false;
+  //     if (cell instanceof MarkdownCell && cell.headingCollapsed) {
+  //       const nextParent = NotebookActions.findNextParentHeading(cell, source);
+  //       const index = findIndex(source.widgets, (possibleCell: Cell) => {
+  //         return cell.model.id === possibleCell.model.id;
+  //       });
+  //       console.log('dropping', nextParent);
+  //       if (nextParent > 0 && nextParent < source.widgets.length) {
+  //         toMove.push(...source.widgets.slice(index + 1, nextParent));
+  //       } else {
+  //         //if this is the last header, make sure we don't move cells below the pb
+  //         const scopeNum = Utils.findScopeNumber(
+  //           cell,
+  //           this._manager.previousSchema
+  //         );
+  //         const [, , , footerIndex] = Utils.findHeaderandFooter(
+  //           scopeNum,
+  //           notebook,
+  //           this._manager.previousSchema
+  //         );
+  //         cell.headingCollapsed = false;
+  //         console.log('found collapse to drag', index, footerIndex);
+  //         toMove.push(...source.widgets.slice(index + 1, footerIndex + 1));
+  //         recollapse = true;
+  //       }
+  //     }
+
+  //     // Compute the to/from indices for the move.
+  //     const fromIndex = ArrayExt.firstIndexOf(notebook.widgets, toMove[0]);
+  //     let toIndex = this.findCell(target, notebook);
+  //     // This check is needed for consistency with the view.
+  //     if (toIndex !== -1 && toIndex > fromIndex) {
+  //       toIndex -= 1;
+  //     } else if (toIndex === -1) {
+  //       // If the drop is within the notebook but not on any cell,
+  //       // most often this means it is past the cell areas, so
+  //       // set it to move the cells to the end of the notebook.
+  //       toIndex = notebook.widgets.length - 1;
+  //       // if (isPagebreak) {
+  //       //   let lastPbIndex = -1;
+  //       //   notebook.widgets.forEach((searchCell, index) => {
+  //       //     if (searchCell?.model.getMetadata('pagebreak') === true) {
+  //       //       if (lastPbIndex < index) {
+  //       //         lastPbIndex = index;
+  //       //       }
+  //       //     }
+  //       //   });
+  //       //   if (lastPbIndex > -1) {
+  //       //     toIndex = lastPbIndex;
+  //       //   }
+  //       // } else {
+  //       //   toIndex = notebook.widgets.length - 1;
+  //       // }
+  //     }
+  //     // Don't move if we are within the block of selected cells.
+  //     if (toIndex >= fromIndex && toIndex < fromIndex + toMove.length) {
+  //       return;
+  //     }
+
+  //     // Move the cells one by one
+  //     notebook.moveCell(fromIndex, toIndex, toMove.length);
+  //     if (recollapse) {
+  //       (cell as MarkdownCell).headingCollapsed = true;
+  //     }
+  //   } else {
+  //     // Handle the case where we are copying cells between
+  //     // notebooks.
+  //     event.dropAction = 'copy';
+  //     // Find the target cell and insert the copied cells.
+  //     let index = this.findCell(target, notebook);
+  //     if (index === -1) {
+  //       index = notebook.widgets.length;
+  //     }
+  //     const start = index;
+  //     const values = event.mimeData.getData(JUPYTER_CELL_MIME);
+  //     // Insert the copies of the original cells.
+  //     // We preserve trust status of pasted cells by not modifying metadata.
+  //     model.sharedModel.insertCells(index, values);
+  //     // Select the inserted cells.
+  //     notebook.deselectAll();
+  //     notebook.activeCellIndex = start;
+  //     notebook.extendContiguousSelectionTo(index - 1);
+  //   }
+  //   void NotebookActions.focusActiveCell(notebook);
+  // }
   handleDrop(event: Drag.Event): void {
     const notebook = this._notebook;
+    console.log('handle Drop');
     if (!event.mimeData.hasData(JUPYTER_CELL_MIME)) {
       return;
     }
@@ -717,46 +1005,20 @@ export class pagebreakEventHandlers {
       event.dropAction = 'none';
       return;
     }
-
     let target = event.target as HTMLElement;
-
-    //PAGEBREAK CHANGE: check if the source and target are valid
-    let index = this.findCell(target, notebook);
-    let isBottom = false;
-    if (index === -1) {
-      index = notebook.widgets.length - 1;
-      isBottom = true;
-    }
-    const targetWidget = notebook.widgets[index];
-    const sourceElements =
-      notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
-    const [isValid, isPagebreak] = this.isValidDrop(
-      targetWidget,
-      sourceElements,
-      isBottom,
-      notebook
-    );
-    if (!isValid) {
-      if (this._notebook.selectedCells.length > 1) {
-        this._notebook.deselectAll();
-        this._notebook.select(this._notebook.activeCell!);
-      }
-      return;
-    }
-
-    notebook.widgets.forEach(cell =>
-      cell.node.classList.remove(DROP_TARGET_CLASS_BOTTOM)
-    );
-    //PAGEBREAK CHANGE: check if the source and target are valid
-
     while (target && target.parentElement) {
       if (target.classList.contains(DROP_TARGET_CLASS)) {
         target.classList.remove(DROP_TARGET_CLASS);
-        target.classList.remove(DROP_TARGET_CLASS_BOTTOM);
         break;
       }
       target = target.parentElement;
     }
+
+    //PB CHANGE
+    notebook.widgets.forEach(cell =>
+      cell.node.classList.remove(DROP_TARGET_CLASS_BOTTOM)
+    );
+    //PB Change
 
     // Model presence should be checked before calling event handlers
     const model = notebook.model!;
@@ -771,30 +1033,13 @@ export class pagebreakEventHandlers {
       // For collapsed markdown headings with hidden "child" cells, move all
       // child cells as well as the markdown heading.
       const cell = toMove[toMove.length - 1];
-      let recollapse = false;
       if (cell instanceof MarkdownCell && cell.headingCollapsed) {
         const nextParent = NotebookActions.findNextParentHeading(cell, source);
-        const index = findIndex(source.widgets, (possibleCell: Cell) => {
-          return cell.model.id === possibleCell.model.id;
-        });
-        console.log('dropping', nextParent);
-        if (nextParent > 0 && nextParent < source.widgets.length) {
+        if (nextParent > 0) {
+          const index = findIndex(source.widgets, (possibleCell: Cell) => {
+            return cell.model.id === possibleCell.model.id;
+          });
           toMove.push(...source.widgets.slice(index + 1, nextParent));
-        } else {
-          //if this is the last header, make sure we don't move cells below the pb
-          const scopeNum = Utils.findScopeNumber(
-            cell,
-            this._manager.previousSchema
-          );
-          const [, , , footerIndex] = Utils.findHeaderandFooter(
-            scopeNum,
-            notebook,
-            this._manager.previousSchema
-          );
-          cell.headingCollapsed = false;
-          console.log('found collapse to drag', index, footerIndex);
-          toMove.push(...source.widgets.slice(index + 1, footerIndex + 1));
-          recollapse = true;
         }
       }
 
@@ -808,32 +1053,36 @@ export class pagebreakEventHandlers {
         // If the drop is within the notebook but not on any cell,
         // most often this means it is past the cell areas, so
         // set it to move the cells to the end of the notebook.
-        if (isPagebreak) {
-          let lastPbIndex = -1;
-          notebook.widgets.forEach((searchCell, index) => {
-            if (searchCell?.model.getMetadata('pagebreak') === true) {
-              if (lastPbIndex < index) {
-                lastPbIndex = index;
-              }
-            }
-          });
-          if (lastPbIndex > -1) {
-            toIndex = lastPbIndex;
-          }
-        } else {
-          toIndex = notebook.widgets.length - 1;
-        }
+        toIndex = notebook.widgets.length - 1;
       }
       // Don't move if we are within the block of selected cells.
       if (toIndex >= fromIndex && toIndex < fromIndex + toMove.length) {
         return;
       }
-
+      console.log(
+        'dropping :',
+        toMove.map(cell => cell.model.sharedModel.getSource()).toString(),
+        'to: ',
+        toIndex,
+        'from:',
+        fromIndex
+      );
+      const isValid = this.isValidDrop(
+        notebook.widgets[toIndex],
+        toMove,
+        false,
+        notebook
+      );
+      if (!isValid) {
+        console.log('drop invalid');
+        return;
+      }
+      // console.log('moving cells', notebook.widgets);
+      // notebook.widgets.forEach(cell => console.log(cell.model.id));
       // Move the cells one by one
       notebook.moveCell(fromIndex, toIndex, toMove.length);
-      if (recollapse) {
-        (cell as MarkdownCell).headingCollapsed = true;
-      }
+      // console.log('after move', notebook.widgets);
+      // notebook.widgets.forEach(cell => console.log(cell.model.id));
     } else {
       // Handle the case where we are copying cells between
       // notebooks.

@@ -1,7 +1,7 @@
 import { Cell } from '@jupyterlab/cells';
 import { NotebookPanel } from '@jupyterlab/notebook';
 import { PagebreakInternalSchema } from './types';
-import { findScopeNumber } from './utils';
+import { findHeaderandFooter, findScopeNumber } from './utils';
 function tagNotebookCells(
   notebook: NotebookPanel,
   schema: PagebreakInternalSchema
@@ -23,12 +23,23 @@ function tagNotebookCells(
 
   notebook?.content?.widgets.forEach((cell, index) => {
     const scopeNum = findScopeNumber(cell, schema);
-    conditionalClass(
-      cell,
-      'jp-pb-pagebreakEven',
-      'jp-pb-pagebreakOdd',
-      scopeNum % 2 === 0
+    const [, , headerIndex, footerIndex] = findHeaderandFooter(
+      scopeNum,
+      notebook.content,
+      schema
     );
+    // console.log(index, headerIndex, footerIndex);
+    if (index >= headerIndex && index <= footerIndex) {
+      conditionalClass(
+        cell,
+        'jp-pb-pagebreakEven',
+        'jp-pb-pagebreakOdd',
+        scopeNum % 2 === 0
+      );
+    } else {
+      cell.removeClass('jp-pb-pagebreakEven');
+      cell.removeClass('jp-pb-pagebreakOdd');
+    }
 
     toggleClass(cell, 'jp-pb-pagebreakCodeCell', cell.model.type === 'code');
 
@@ -77,4 +88,4 @@ function conditionalClass(
   }
 }
 
-export { tagNotebookCells };
+export { tagNotebookCells, toggleClass };

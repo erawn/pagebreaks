@@ -59,12 +59,14 @@
     },
     "dependencies": {
         "@jupyterlab/application": "^4.0.0",
+        "@jupyterlab/docmanager-extension": "^4.2.3",
         "@jupyterlab/settingregistry": "^4.0.0",
         "@types/lodash": "^4.17.0",
         "@types/node": "^20.14.1",
         "@types/uuid": "^9.0.8",
         "classnames": "^2.5.1",
         "husky": "^9.0.11",
+        "json-diff-ts": "^4.0.1",
         "lint-staged": "^15.2.4",
         "lodash": "^4.17.21"
     },

@@ -23,6 +23,7 @@ function addCommands(
   activeManager: activeManager
 ) {
   const { commands } = app;
+
   const runPagebreakIcon = new LabIcon({
     name: 'ui-components:run-pagebreak',
     svgstr: runPagebreakIconStr
@@ -138,10 +139,13 @@ function addCommands(
         notebookTracker?.currentWidget?.content,
         schemaManager?.previousSchema
       );
+
+      const activeCellIndex =
+        notebookTracker.currentWidget?.content.activeCellIndex ?? -1;
       if (
         activeManager.checkisActive(notebookTracker) &&
-        headerIndex !== -1 &&
-        footerIndex !== -1
+        headerIndex <= activeCellIndex &&
+        footerIndex >= activeCellIndex
       ) {
         return true;
       }
@@ -217,7 +221,7 @@ function addCommands(
         notebookTracker.activeCell?.model.getMetadata('pagebreak') ?? false;
       const noPBsExist =
         (app.shell.currentWidget as NotebookPanel)?.content?.widgets?.find(
-          cell => cell.model.getMetadata('pagebreak')
+          cell => cell?.model?.getMetadata('pagebreak')
         ) === undefined;
       // console.log(isActive, currentCellIsPB, noPBsExist);
       if (isActive) {

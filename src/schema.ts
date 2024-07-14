@@ -1,10 +1,20 @@
-import { NotebookPanel } from '@jupyterlab/notebook';
+import { ISharedCodeCell } from '@jupyter/ydoc';
+import { INotebookContent } from '@jupyterlab/nbformat';
+import {
+  INotebookTracker,
+  NotebookPanel,
+  NotebookTracker
+} from '@jupyterlab/notebook';
 import { KernelMessage } from '@jupyterlab/services';
+import _ from 'lodash';
 import { activeManager } from './activeManager';
 import { schemaManager } from './schemaManager';
 import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
+const sendJSONDiffThrottle = _.throttle(sendJSONDiffInner, 200);
+
 function buildNotebookSchema(notebook: NotebookPanel) {
   const cells = notebook.content.widgets;
+  notebook.content.model?.sharedModel.cells.at(0)?.cell_type === 'raw';
   // console.log('cells:', cells);
   // for (const cell of cells.values()) {
   //   console.log(cell.model.id);
@@ -13,45 +23,45 @@ function buildNotebookSchema(notebook: NotebookPanel) {
   // cells.forEach(cell => console.log(cell.model.metadata));
   const cellList: PagebreakSchema = [];
   cells.forEach((cell, index) => {
-    if (cell.model.type === 'code') {
+    if (
+      cell.model.type === 'raw' &&
+      cell.model.getMetadata('pagebreak') === true
+    ) {
+      const names = cell.model.sharedModel.getSource();
+      let variables = parseExport(names);
+      if (variables === null) {
+        variables = [];
+        cell.node.title =
+          'Export Statement Poorly Formed, should look like:\n "Export { var1 var2 var3 }"';
+        cell.editorWidget?.addClass('jp-pb-poorly-formed-export');
+      } else {
+        cell.node.title = '';
+        cell.editorWidget?.removeClass('jp-pb-poorly-formed-export');
+      }
+      // console.log('found pb names', names);
       const newCell: IPagebreakCell = {
         index: index,
         id: cell.model.id,
-        type: cell.model.type,
-        variables: []
+        type: 'pagebreak',
+        variables: variables ?? []
       };
       cellList.push(newCell);
-    } else if (cell.model.type === 'raw') {
-      const content = cell.model.sharedModel.getSource();
-      if (cell.model.getMetadata('pagebreak')) {
-        const names = content;
-        let variables = parseExport(names);
-        if (variables === null) {
-          variables = [];
-          cell.node.title =
-            'Export Statement Poorly Formed, should look like:\n "Export { var1 var2 var3 }"';
-          cell.editorWidget?.addClass('jp-pb-poorly-formed-export');
-        } else {
-          cell.node.title = '';
-          cell.editorWidget?.removeClass('jp-pb-poorly-formed-export');
-        }
-        // console.log('found pb names', names);
-        const newCell: IPagebreakCell = {
-          index: index,
-          id: cell.model.id,
-          type: 'pagebreak',
-          variables: variables ?? []
-        };
-        cellList.push(newCell);
-      }
     } else if (
       cell.model.type === 'markdown' &&
-      cell.model.getMetadata('pagebreakheader')
+      cell.model.getMetadata('pagebreakheader') === true
     ) {
       const newCell: IPagebreakCell = {
         index: index,
         id: cell.model.id,
         type: 'header',
+        variables: []
+      };
+      cellList.push(newCell);
+    } else {
+      const newCell: IPagebreakCell = {
+        index: index,
+        id: cell.model.id,
+        type: cell.model.type,
         variables: []
       };
       cellList.push(newCell);
@@ -77,7 +87,7 @@ function buildNotebookSchema(notebook: NotebookPanel) {
   }
   //Builds an Object with structure [cell.id]: matching pagebreak scope
   const cellsToScopes = cellList
-    .filter(cell => cell.type === 'code' || cell.type === 'header')
+    .filter(cell => cell.type !== 'pagebreak')
     .map(cell => {
       const currentScope = scopeList
         .filter(pbCell => pbCell.index > cell.index)
@@ -182,7 +192,7 @@ function parseExport(input: string): string[] | null {
   return null;
 }
 function sendLog(
-  notebook: NotebookPanel,
+  notebookTracker: INotebookTracker | NotebookPanel,
   message: string,
   activeManager: activeManager
 ) {
@@ -191,8 +201,14 @@ function sendLog(
     console.log('Not sending log because its diabled');
     return;
   }
+
+  const notebook =
+    notebookTracker instanceof NotebookTracker
+      ? notebookTracker.currentWidget
+      : (notebookTracker as NotebookPanel);
+  const name = notebook?.title.label;
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
-    code: '%%pb_log \n' + message,
+    code: '%%pb_log \n' + 'NAME[' + name + ']' + message,
     silent: true,
     store_history: false
   };
@@ -214,6 +230,87 @@ function sendLog(
   };
 
   // kernelModel.execute();
+}
+function sendJSONDiff(
+  notebookTracker: INotebookTracker,
+  manager: schemaManager,
+  isActiveManager: activeManager
+) {
+  sendJSONDiffThrottle(notebookTracker, manager, isActiveManager);
+}
+
+function sendJSONDiffInner(
+  notebookTracker: INotebookTracker,
+  manager: schemaManager,
+  isActiveManager: activeManager
+) {
+  // console.log('NBFORMAT', notebook.model?.nbformatMinor);
+  //from https://github.com/jupyter-server/jupyter_ydoc/blob/eefbbcc7812e53c36ccc7fca9f031513562c0da6/javascript/src/ynotebook.ts#L446
+  // strip cell ids if we have notebook format 4.0-4.4
+  const notebook = notebookTracker.currentWidget;
+  if (notebook === null) {
+    return;
+  }
+  if (notebook.model === undefined || notebook.model === null) {
+    return;
+  }
+  // console.log(notebook.content.title);
+
+  const json: INotebookContent = {
+    metadata: notebook.model.sharedModel.metadata,
+    nbformat_minor: notebook.model.sharedModel.nbformat_minor,
+    nbformat: notebook.model.sharedModel.nbformat,
+    notebookName: notebook.title.label,
+    cells: notebook.model.sharedModel.cells.map(c => {
+      const raw = c.toJSON();
+      if (c.cell_type === 'code') {
+        // console.log((c as ISharedCodeCell).outputs);
+        const outputTypes = (c as ISharedCodeCell)
+          .getOutputs()
+          .flatMap(output => {
+            if (output.data) {
+              return Object.keys(output.data);
+            } else {
+              return [];
+            }
+          });
+        raw.output_types = outputTypes;
+        // console.log(outputTypes);
+      }
+      return raw;
+    })
+  };
+
+  json.cells.forEach((cell, index) => {
+    cell.attachments ? (cell.attachments = {}) : {};
+    cell.outputs ? (cell.outputs = {}) : {};
+    cell.index = index;
+    cell.execution_count ? (cell.execution_count = null) : {};
+  });
+  if (isActiveManager.checkisActive(notebookTracker)) {
+    const schema = buildNotebookSchema(notebook);
+    json.cells.forEach((cell, index) => {
+      const isHeader = cell.metadata.pagebreakheader === true;
+      const isFooter = cell.metadata.pagebreak === true;
+      cell.metadata ? (cell.metadata = {}) : {};
+      isHeader ? (cell.metadata.pagebreakheader = true) : {};
+      isFooter ? (cell.metadata.pagebreak = true) : {};
+      const id = cell.id?.toString();
+      if (id && schema.cellsToScopes) {
+        const scopeNum = schema.cellsToScopes[id];
+        if (scopeNum !== undefined) {
+          cell.pagebreak = scopeNum;
+        }
+      }
+    });
+  }
+  // sendLog(notebookTracker, 'NAME' + notebook.title.label, isActiveManager);
+  console.log('Sending JSON Log');
+  sendLog(
+    notebookTracker,
+    'RELOAD_NOTEBOOK:' + JSON.stringify(json),
+    isActiveManager
+  );
 }
 
 // function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {
@@ -265,4 +362,4 @@ function sendLog(
 //   return didModify;
 // }
 
-export { buildNotebookSchema, parseExport, sendLog, sendSchema };
+export { buildNotebookSchema, parseExport, sendJSONDiff, sendLog, sendSchema };

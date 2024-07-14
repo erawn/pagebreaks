@@ -1,11 +1,12 @@
 from __future__ import print_function
 
 import json
-import logging
+import re
 import sys
 import typing
 from typing import Any, Dict, List, Set, Tuple, Type
 
+import jsondiff as jd
 from IPython.core.magic import (Magics, cell_magic, line_cell_magic,
                                 line_magic, magics_class)
 from IPython.core.magics.namespace import NamespaceMagics
@@ -16,9 +17,8 @@ from loguru import logger
 study_logger = logger.bind(study=True)
 # study_logger = logging.getLogger("pagebreaks_study")
 # logger = logging.getLogger("pagebreaks")
-schema: Any = None
 
-
+reload_regex = re.compile(r"""NAME\[([^\]]*)\]RELOAD_NOTEBOOK:""")
 @magics_class
 class pagebreak_magics(Magics):
 
@@ -26,6 +26,7 @@ class pagebreak_magics(Magics):
         super(pagebreak_magics, self).__init__(shell)
         self.shell: TerminalInteractiveShell = shell
         self.schema = None
+        self.currentJSON = None
 
     @line_magic
     def print_schema(self, line):
@@ -118,7 +119,7 @@ class pagebreak_magics(Magics):
         # and the table itself
         kb = 1024
         Mb = 1048576  # kb**2
-        def printEntry(vname: str,var: Any,vtype:str, scope: str = "", exported:bool =False):
+        def printEntry(vname: str,var: Any,vtype:str, scope: str = "global", exported:str = ""):
             print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end=' ')
             if vtype in seq_types:
                 print("n="+str(len(var)))
@@ -156,7 +157,7 @@ class pagebreak_magics(Magics):
             # print("Pagebreak : ", str(scopeNum))
             for variable in varsByScope[scopeNum]:
                 (vName, val, vType) = variable
-                printEntry(vName,val,vType,str(scopeNum),self.shell.user_ns.get("pb_export_"+vName) is not None)
+                printEntry(vName,val,vType,str(scopeNum),str(self.shell.user_ns.get("pb_export_"+vName) is not None))
 
 
         for vname,var,vtype in zip(varnames,varlist,typelist):
@@ -165,14 +166,53 @@ class pagebreak_magics(Magics):
         
     @cell_magic
     def pb_log(self, line, cell):
-        study_logger.info(cell)
+        msg = typing.cast(str,cell)
+        match = reload_regex.match(msg)
+        if match:
+            # logger.info("FOUND MATCH")
+            name = match.group(1)
+            # logger.info("name")
+            logger.info(str(name))
+            msg = msg[match.end():]
+            logger.info("MSG" + str(msg))
+            jsonMSG = typing.cast(dict,json.loads(msg, strict=False))
+            # logger.info("jsonmsg" +str(type(jsonMSG)) + str(jsonMSG))
+            # logger.info("currentJSON" + str(self.currentJSON))
+            if not isinstance(name,str):
+                name = ""
+                logger.info("cant find notebook name!")
+            # logger.info(str(name))
+            if not self.currentJSON:
+                # logger.info("reload" + str(jsonMSG))
+                study_logger.info("NOTEBOOK_RELOAD ["+name+"]" + str(jsonMSG))
+            else:
+                
+                diff = typing.cast(dict,jd.diff(self.currentJSON,jsonMSG))
+                # if "notebookName" in diff:
+                #     study_logger.info("NOTEBOOK_RELOAD" + str(jsonMSG))
+                # else:
+                logger.info(diff)
+                if(len(diff) > 0):
+                    logger.info(diff)
+                    study_logger.info("NOTEBOOK_UPDATE ["+name+"]" + str(diff))
+                # patch = jd.patch(self.currentJSON, json.loads(diff))
+                # logger.info("patch" + str(patch == jsonMSG))
+            # logger.info("after if")
+            # logger.info(str(type(jsonMSG)))
+            # logger.info(str(type(self.currentJSON)))
+            
+            self.currentJSON = jsonMSG
+            
+            # logger.info("currentJSONAFTER" + str(self.currentJSON))
+        else:
+            study_logger.info(cell)
         return
 
     @cell_magic
     def pb_update(self, line, cell):
         "Magic that works both as %lcmagic and as %%lcmagic"
         schema = json.loads(cell)
-        logging.info("pb_update" + str(schema))
+        logger.info("pb_update" + str(schema))
         self.schema = schema
         self.shell.user_ns["___pbschema"] = schema
         # print("Called pb update line magic")

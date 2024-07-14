@@ -8,35 +8,47 @@
   display: none;
 }
 
+.jp-Cell.jp-Notebook-cell:not(.jp-pb-selectedPagebreak) {
+  opacity: 0.8;
+}
+
 .jp-Notebook .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakCodeCell {
   /* position: relative;
     left: 50px; */
   margin-left: 50px;
 }
 
-.lm-Widget
-  .jp-Notebook
-  .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
-  position: relative;
-  margin-bottom: 15px;
+.jp-Notebook.jp-mod-commandMode
+  .jp-Cell.jp-Notebook-cell.jp-mod-active.jp-mod-selected:not(
+    .jp-mod-multiSelected
+  ) {
+  &.jp-pb-pagebreakEven {
+    background: rgb(164 229 255 / 60%);
+  }
 
-  /* left: 0px; */
+  &.jp-pb-pagebreakOdd {
+    background: rgb(164 255 181 / 60%);
+  }
 }
 
-.lm-Widget
-  .jp-Notebook
-  .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakEven {
-  background: rgb(164 229 255 / 40%);
-}
+.lm-Widget .jp-Notebook .jp-Cell.jp-Notebook-cell {
+  margin-left: 50px;
 
-.lm-Widget
-  .jp-Notebook
-  .jp-Cell.jp-CodeCell.jp-Notebook-cell.jp-pb-pagebreakOdd {
-  background: rgb(164 255 181 / 40%);
+  &.jp-pb-pagebreakEven {
+    background: rgb(164 229 255 / 40%);
+  }
+
+  &.jp-pb-pagebreakOdd {
+    background: rgb(164 255 181 / 40%);
+  }
 }
 
 /* stylelint-disable-next-line no-descending-specificity */
 .jp-Notebook .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell {
+  margin-left: 0;
+  position: relative;
+  margin-bottom: 15px;
+
   &.jp-pb-pagebreakEven {
     background: rgb(164 229 255 / 63%);
   }
@@ -46,12 +58,9 @@
   }
 }
 
-/* .jp-Notebook
-  .jp-Cell.jp-RawCell.jp-Notebook-cell.jp-pb-pagebreakCell.
-   {
-} */
 .jp-Notebook .jp-Cell.jp-MarkdownCell.jp-Notebook-cell.jp-pb-header {
   margin-top: 15px;
+  margin-left: 0;
 
   &.jp-pb-pagebreakEven {
     background: rgb(164 229 255 / 63%);
@@ -60,10 +69,6 @@
   &.jp-pb-pagebreakOdd {
     background: rgb(164 255 181 / 63%);
   }
-}
-
-.jp-Cell.jp-Notebook-cell:not(.jp-pb-selectedPagebreak) {
-  opacity: 0.8;
 }
 
 .jp-Notebook-cell.jp-mod-dropTarget-bottom,
@@ -80,6 +85,9 @@
     background: var(--jp-layout-color1);
   }
 } */
+.jp-pb-badFormatting {
+  background: var(--jp-rendermime-error-background) !important;
+}
 
 .jp-pb-pluginstatus-header {
   background: var(--jp-rendermime-error-background);

@@ -4,6 +4,7 @@ import {
   ToolbarButtonComponent,
   UseSignal
 } from '@jupyterlab/ui-components';
+import { find } from '@lumino/algorithm';
 import { Widget } from '@lumino/widgets';
 import * as React from 'react';
 import { schemaManager } from './schemaManager';
@@ -21,14 +22,19 @@ export function addVariableListWidget(
   // for (const name of tracker?.currentWidget?.toolbar?.names() ?? '') {
   //   console.log(name);
   // }
-  const widget = createVariableList(tracker, manager);
-  if (!tracker?.currentWidget?.toolbar.contains(widget)) {
-    tracker?.currentWidget?.toolbar.insertAfter(
-      'spacer',
-      'variableList',
-      createVariableList(tracker, manager)
-    );
+  const namesIterator = tracker?.currentWidget?.toolbar.names();
+  const existing = namesIterator
+    ? find(namesIterator, value => value === 'variableList')
+    : false;
+  if (existing) {
+    return false;
   }
+
+  tracker?.currentWidget?.toolbar.insertAfter(
+    'spacer',
+    'variableList',
+    createVariableList(tracker, manager)
+  );
 }
 function createVariableList(
   notebookTracker: INotebookTracker,
@@ -69,16 +75,16 @@ function getFormattedVariableList(props: IVariableListProps): string {
 function VariableListComponent(props: IVariableListProps): JSX.Element {
   // const translator = props.translator || nullTranslator;
   // const trans = translator.load('jupyterlab');
-  // const callback = () => {
-  //   void props.dialogs.selectKernel(props.sessionContext);
-  // };
+  const callback = () => {
+    // void props.dialogs.selectKernel(props.sessionContext);
+  };
 
   return (
     <UseSignal signal={props.tracker.activeCellChanged}>
       {() => (
         <ToolbarButtonComponent
           className={TOOLBAR_VARIABLE_LIST_CLASS}
-          // onClick={callback}
+          onClick={callback}
           // tooltip={trans.__('Switch kernel')}
           label={getFormattedVariableList(props)}
         />

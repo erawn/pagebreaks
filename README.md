@@ -1,8 +1,8 @@
 # Pagebreaks : Scope Boundaries for Jupyter Notebooks
 
-Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells, allowing cells within a pagebreak to share state as usual, but keeping state isolated to that group. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells. 
+Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells, allowing cells within a pagebreak to share state as usual, but keeping state isolated to that group. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells.
 
-The goal is to make it easier to keep variables organized in notebooks while changing as little as possible about how notebook programmers like to work. To do that, _Pagebreaks_ allows users to organize their notebook state by organizing their cells within the notebook. 
+The goal is to make it easier to keep variables organized in notebooks while changing as little as possible about how notebook programmers like to work. To do that, _Pagebreaks_ allows users to organize their notebook state by organizing their cells within the notebook.
 
 ## Participate in Research!
 
@@ -51,21 +51,19 @@ The extension will be on PyPi when the study begins. Hang tight until then! Than
              <td align="center" width="40%"><img width="955" align="right" alt="packages_are_global" src="https://github.com/erawn/pagebreaks/assets/26943712/736388a9-0dc8-4efb-b4ae-0fd942b7b1f4">
 </table>
 
-<sub> *Because Python doesn't have a built-in way to ensure read-only variables, we check for redefinitions at the AST level and dynamically after each cell run, checking to see if the value has changed. </sub>
+<sub> \*Because Python doesn't have a built-in way to ensure read-only variables, we check for redefinitions at the AST level and dynamically after each cell run, checking to see if the value has changed. </sub>
 
 ## Pagebreak Actions
 
 ### Making a New Pagebreak
 
-New pagebreaks are made by pressing this button: <img width="49" alt="Screenshot 2024-07-01 at 1 50 30 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/bad69156-2286-475e-8ff1-9de49e9399e8"> on the "Export" cell of a pagebreak at the bottom. 
+New pagebreaks are made by pressing this button: <img width="49" alt="Screenshot 2024-07-01 at 1 50 30 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/bad69156-2286-475e-8ff1-9de49e9399e8"> on the "Export" cell of a pagebreak at the bottom.
 
 <img width="558" alt="makenewpb" src="https://github.com/erawn/pagebreaks/assets/26943712/7df465b9-4266-4c51-ae9a-5e1ca77b995a">
 
-
 ### Merging Pagebreaks
+
 Instead of deleting Pagebreaks, you can merge the cells of a pagebreak into the one above it with:<img width="50" alt="Screenshot 2024-07-01 at 1 50 56 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/0b9c22d8-65ea-4029-8dcc-e40d22dd7a22">
-
-
 
 <img width="562" alt="mergepb" src="https://github.com/erawn/pagebreaks/assets/26943712/ccfaf0da-0c34-4f61-abe1-3d27f2638e31">
 
@@ -86,13 +84,13 @@ For example:
 
 ### %who_pb
 
-We've added the IPython magic ```%who_pb"```, which is a pagebreaks-specific version of ```%who_ls```. ```%who_pb"``` prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
+We've added the IPython magic `%who_pb"`, which is a pagebreaks-specific version of `%who_ls`. `%who_pb"` prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
 
 ## How it works
 
 You shouldn't need to know what's going on under the hood to use Pagebreaks, but if you're curious, read on!
 
-Rather than dynamically storing and reloading different global variables in your kernel, Pagebreaks manipulates the programs you write before they go to the interpreter, changing the names of variables under the hood. 
+Rather than dynamically storing and reloading different global variables in your kernel, Pagebreaks manipulates the programs you write before they go to the interpreter, changing the names of variables under the hood.
 
 <table align="center">
     <tr>
@@ -101,18 +99,14 @@ Rather than dynamically storing and reloading different global variables in your
     </tr>
 </table>
 
+When a variable is exported to be used between pagebreaks, a new variable <code>pb_export_b</code> is generated for each cell run (as a user, you don't have to worry about any of this, you can just use <code>a</code> and <code>b</code> as normal!). Because Python doesn't have a way to enforce that variables are read-only at compile time, Pagebreaks will check after your cell has run that the <code>pb_export_b</code> variable still matches the original <code>pb_0_b</code> variable. If it doesn't, Pagebreaks will revert the variables in your current pagebreak back to what they were before you ran the cell.
 
-
-When a variable is exported to be used between pagebreaks, a new variable <code>pb_export_b</code> is generated for each cell run (as a user, you don't have to worry about any of this, you can just use <code>a</code> and <code>b</code> as normal!). Because Python doesn't have a way to enforce that variables are read-only at compile time, Pagebreaks will check after your cell has run that the <code>pb_export_b</code> variable still matches the original <code>pb_0_b</code> variable. If it doesn't, Pagebreaks will revert the variables in your current pagebreak back to what they were before you ran the cell. 
 <table align="center">
     <tr>
               <td align="left">Because <code>b</code> is accessible in the second pagebreak because it's been exported, a <code>pb_export_b</code> varaible is generated for later cells to reference, preventing those cells from modifying our real <code>b</code> variable, which is <code>pb_0_b</code></td>
       <td align="center" width="40%"><img width="495" alt="Screenshot 2024-07-01 at 2 49 40 PM" src="https://github.com/erawn/pagebreaks/assets/26943712/5c2be0d1-f698-420c-a744-ee63126de5c5">
     </tr>
 </table>
-
-
-
 
 ## Requirements
 

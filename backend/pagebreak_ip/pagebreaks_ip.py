@@ -1,7 +1,9 @@
 import ast
 import copy
+import datetime
 import inspect
 import itertools
+import json
 import os
 import pprint
 import re
@@ -14,6 +16,7 @@ from dataclasses import dataclass
 from operator import eq
 from typing import Any, Dict, List, Set, Tuple, Type
 
+import jsondiff as jd
 import numpy as np
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
@@ -24,11 +27,31 @@ from pagebreak_magic import pagebreak_magics
 from pandas import DataFrame, Series
 
 DEBUG = False
+# def serialize(record):
+#     subset = {
+#         # "timestamp": datetime.datetime.utcnow().isoformat(),
+#         # "src_name": os.environ.get('SOURCE_NAME', ''),
+#         # "workload_name": os.environ.get('WORKLOAD_NAME', ''),
+#         # "hostname":  os.environ.get('HOSTNAME', ''),
+#         # "automaton_profile": os.environ.get('AUTOMATON_PROFILE', ''),
+#         # "automaton_name": os.environ.get('AUTOMATON_NAME', ''),
+#         # "message": record["message"],
+#         # "data": record["extra"],
+#     }
+#     return json.dumps(subset)
+
+
+# def patching(record):
+#     record["extra"]["serialized"] = serialize(record)
+
 
 logger.remove() #to remove std 
-fmt = "{time} - {name} - {level} - {message}"
-logger.add("./.pagebreaks/pagebreaks_study.log",format= fmt,serialize=True, filter=lambda record: "study" in record["extra"],enqueue=True,rotation="50 MB",compression="zip")
-logger.add("pagebreaks_debug.log",retention=3,rotation="50 MB",)
+
+# logger = logger.patch(patching)
+
+fmt = "{time} - {name} - {level}"
+logger.add("./pagebreaks/pagebreaks_study.log",watch=True,serialize=True, filter=lambda record: "study" in record["extra"],rotation="50 MB",compression="gz", enqueue=True)
+logger.add("pagebreaks_debug.log",retention=3,rotation="50 MB",compression="gz",filter=lambda record: "study" not in record["extra"],enqueue = True)
 study_logger = logger.bind(study=True)
 # logger.add()
 # logger = logging.getLogger("pagebreaks")
@@ -226,6 +249,11 @@ class PagebreaksASTTransformer(baseASTTransform):
                 "ABORTING: Have not yet connected to Jupyter Extension, is it installed?"
             )
             return node
+        
+        ## running from Ipython REPL, not Jupyter OR plugin is set to inactive
+        if data.currentContext == -1:
+            return node
+        
         # if node is None:
         #     print("node is none")
         #     logger.info("Node is none" + str(data))
@@ -294,7 +322,7 @@ class PagebreaksASTTransformer(baseASTTransform):
                 ):  # we can only statically check for re-assignments of exported variables. On plug-in itself we'll dynamically check for exported variables changing.
                     logger.error("Variable redefinition" + node.id)
                     message = (
-                        """pagebreaksError: Attempted to Redefine Exported Variable: '"""
+                        """Pagebreaks Error: Attempted to Redefine Exported Variable: '"""
                         + str(node.id)
                         + """' elsewhere in the notebook"""
                     )
@@ -423,9 +451,19 @@ class Pagebreak(object):
 
     def pre_run_cell(self, info: ExecutionInfo):
         logger.info(info.raw_cell)
-        study_logger.info(info)
+        # info_dict = {'id': info.cell_id, 'raw_cell': info.raw_cell}
+        # study_logger.info("Run Cell:" + str(info_dict) )
 
-
+        if(info.cell_id == None):
+            self.ast_transformer.setStoredData(
+                astWalkData(
+                    currentContext=-1,
+                    userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                    exportedVariables={},
+                    isLineMagic=True
+                )
+            )
+            return
         # Check our magics are setup to get data
         if self.magics is None:
             logger.info("magics error")
@@ -440,6 +478,18 @@ class Pagebreak(object):
         schema: dict = self.magics.schema
         if DEBUG:
             pprint.pprint(schema.keys())
+        if schema.get('inactive',False):
+            logger.info("Pagebreaks is inactive")
+            self.ast_transformer.setStoredData(
+                astWalkData(
+                    currentContext=-1,
+                    userDefinedVariables=set(),  # this will be filled in when we start walking the tree
+                    exportedVariables={},
+                    isLineMagic=True
+                )
+            )
+            return
+        
         cellsToScopes: dict[str, int] = schema.get("cellsToScopes", {})
         scopeList: dict[int, set[str]] = {
             int(key): set(val)
@@ -449,7 +499,7 @@ class Pagebreak(object):
         # check if our cell_id is in a scope
         currentContext: int = cellsToScopes.get(str(info.cell_id), -1)
         if currentContext == -1:
-            raise PagebreakError("Couldn't find schema").with_traceback(None)
+            raise PagebreakError("Couldn't find schema, please reload the page").with_traceback(None)
         self.current_context = currentContext
 
         # check for duplicate exported names and previous exports which aren't defined
@@ -550,7 +600,9 @@ class Pagebreak(object):
 
     def post_run_cell(self, result: ExecutionResult):
         # logger.info("post run")
-
+        info = typing.cast(ExecutionInfo, result.info)
+        info_dict = {'id':info.cell_id, 'result': result.error_in_exec, 'raw_cell':info.raw_cell ,'success': result.success, 'raw_cell': info.raw_cell}
+        study_logger.info("Run Cell:" + str(info_dict) )
         if not result.success:
             #Restore Cached Variables on fail
             self.shell.user_ns.update(self.cache)

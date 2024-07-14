@@ -18,8 +18,10 @@
     "strict": true,
     "sourceMap": true,
     "strictNullChecks": true,
+    "allowJs": true,
     "target": "ES2022",
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "lib": ["dom","dom.iterable"]
   },
   "include": ["src/**/*"]
 }

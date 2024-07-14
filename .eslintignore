@@ -22,3 +22,5 @@ app/index.template.js
 .vscode/
 *.json
 *.ipynb
+
+jest.config.js

@@ -58,10 +58,12 @@ export class activeManager {
     this.languageMode = mode;
   }
   setActiveSetting(newSetting: boolean) {
+    // console.log('setting active to ', newSetting);
     this.activeSetting = newSetting;
   }
   setLoggingSetting(newSetting: boolean) {
-    this.activeSetting = newSetting;
+    // console.log('setting logging to ', newSetting);
+    this.loggingSetting = newSetting;
   }
   //   isActive(): boolean {
   //     return this.pluginActive;
@@ -99,7 +101,16 @@ export class activeManager {
       return true;
     }
   }
+
+  isActive(): boolean {
+    if (!this.activeSetting || this.languageMode !== 'python') {
+      return false;
+    } else {
+      return true;
+    }
+  }
   checkIsLogging(): boolean {
+    // console.log('logging check:', this.loggingSetting);
     return this.loggingSetting;
   }
 
