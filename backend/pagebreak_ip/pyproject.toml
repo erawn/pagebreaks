@@ -14,7 +14,6 @@ dependencies = [
     "jsondiff",
     "json",
     "typing",
-    "dataclass",
     "itertools"
 ]
 authors = [
@@ -27,7 +26,7 @@ readme = "readme.md"
 # All the following settings are optional:
 where = ["src"]  # ["."] by default
 include = ["*"]  # ["*"] by default
-exclude = ["tests/*"]  # empty by default
+exclude = ["*.ipynb"]  # empty by default
 
 [tool.pytest.ini_options]
 addopts = [
