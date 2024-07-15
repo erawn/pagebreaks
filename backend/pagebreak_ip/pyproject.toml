@@ -12,9 +12,6 @@ dependencies = [
     "pandas",
     "numpy",
     "jsondiff",
-    "json",
-    "typing",
-    "itertools"
 ]
 authors = [
 { name="Eric Rawn", email="erawn@berkeley.edu"},
