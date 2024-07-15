@@ -2,6 +2,8 @@ import pytest
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
 
+import backend.pagebreak_ip.src.pagebreaks_ip as pagebreaks_ip
+
 
 @pytest.fixture(scope="session")
 def session_ip() -> TerminalInteractiveShell | None:

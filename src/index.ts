@@ -43,6 +43,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     paths: JupyterFrontEnd.IPaths
   ) => {
     const { commands } = app;
+    console.log('JupyterLab extension pagebreaks is activated!');
     commands.commandExecuted.connect((registry, args) => {
       // console.log('command fired', registry, args);
       const notebook = notebookTracker.currentWidget;
@@ -63,7 +64,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // });
     // palette.addItem({ command, category: 'Extension Examples' });
 
-    console.log('JupyterLab extension pagebreaks is activated!');
     const manager = new schemaManager();
     const isActiveManager = new activeManager();
     if (settingRegistry) {

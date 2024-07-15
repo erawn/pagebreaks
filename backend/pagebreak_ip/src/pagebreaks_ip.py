@@ -1,13 +1,7 @@
 import ast
 import copy
-import datetime
-import inspect
 import itertools
-import json
 import os
-import pprint
-import re
-import sys
 import typing
 import warnings
 from collections import Counter
@@ -16,15 +10,16 @@ from dataclasses import dataclass
 from operator import eq
 from typing import Any, Dict, List, Set, Tuple, Type
 
-import jsondiff as jd
 import numpy as np
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
 from loguru import logger
-from pagebreak_magic import pagebreak_magics
+from pagebreak_magic import pagebreak_magics  # type: ignore
 from pandas import DataFrame, Series
+
+# from backend.pagebreak_ip.src.pagebreak_magic import pagebreak_magics
 
 DEBUG = False
 # def serialize(record):
@@ -476,8 +471,8 @@ class Pagebreak(object):
 
         # grab our data structure from the front end
         schema: dict = self.magics.schema
-        if DEBUG:
-            pprint.pprint(schema.keys())
+        # if DEBUG:
+        #     pprint.pprint(schema.keys())
         if schema.get('inactive',False):
             logger.info("Pagebreaks is inactive")
             self.ast_transformer.setStoredData(

@@ -13,7 +13,7 @@ configure_jupyter_server(c)
 
 # c.InteractiveShellApp.exec_lines = [
 #     'import sys',
-#     'sys.path.append("/Users/erawn/pagebreaks/backend/pagebreak_ip/")',
+#     'sys.path.append("/Users/erawn/pagebreaks/backend/pagebreak_ip/src")',
 #     r'''%load_ext pagebreaks_ip''',
 #     'import scipy'
 # ]

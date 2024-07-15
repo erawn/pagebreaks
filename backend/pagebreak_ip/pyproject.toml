@@ -10,8 +10,19 @@ dependencies = [
     "loguru",
     "IPython",
     "pandas",
-    "numpy"
+    "numpy",
+    "jsondiff",
+    "json",
+    "typing",
+    "dataclass",
+    "itertools"
 ]
+authors = [
+{ name="Eric Rawn", email="erawn@berkeley.edu"},
+]
+description = "IPython Backend Plugin for Pagebreaks"
+readme = "README.md"
+
 [tool.setuptools.packages.find]
 # All the following settings are optional:
 where = ["src"]  # ["."] by default
@@ -25,3 +36,7 @@ addopts = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/erawn/pagebreaks"
+Issues = "https://github.com/erawn/pagebreaks/issues"

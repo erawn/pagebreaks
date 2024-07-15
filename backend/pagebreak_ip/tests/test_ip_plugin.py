@@ -1,18 +1,11 @@
-import ast
-import sys
-import typing
-from pprint import pprint
 
-import expecttest
+import typing
+
 import numpy as np
-import pytest
-from hypothesis import given
-from hypothesis.strategies import lists, text
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.utils.capture import capture_output
 
-from backend.pagebreak_ip import pagebreaks_ip as pagebreaks_ip
-from backend.pagebreak_ip.pagebreaks_ip import PagebreakError
+import backend.pagebreak_ip.src.pagebreaks_ip as pagebreaks_ip
 
 
 class Test_IP:
