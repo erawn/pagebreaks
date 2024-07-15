@@ -17,20 +17,20 @@ jobs:
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
     - name: Install pypa/build
-      working-directory: ./backend/pagebreaks_ip
+      working-directory: ./backend/pagebreak_ip
       run: >-
         python3 -m
         pip install
         build
         --user
     - name: Build a binary wheel and a source tarball
-      working-directory: ~/backend/pagebreaks_ip
+      working-directory: ./backend/pagebreak_ip
       run: python3 -m build
     - name: Store the distribution packages
       uses: actions/upload-artifact@v3
       with:
         name: python-package-distributions
-        path: .backend/pagebreaks_ip/dist/
+        path: ./backend/pagebreak_ip/dist/
 
 #   publish-to-pypi:
 #     name: >-

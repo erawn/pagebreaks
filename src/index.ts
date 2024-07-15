@@ -315,7 +315,7 @@ function updatePagebreakFunc(
   // );
   const notebook = notebookTracker.currentWidget;
   if (notebook === undefined || notebook === null) {
-    console.error('ERROR: notebook was undefined or null!!!');
+    console.log('ERROR: notebook was undefined or null!!!');
     return;
   }
 

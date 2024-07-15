@@ -21,7 +21,7 @@ authors = [
 { name="Eric Rawn", email="erawn@berkeley.edu"},
 ]
 description = "IPython Backend Plugin for Pagebreaks"
-readme = "README.md"
+readme = "readme.md"
 
 [tool.setuptools.packages.find]
 # All the following settings are optional:
