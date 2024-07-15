@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pagebreaks_ip"
-version = "0.0.1"
+version = "0.0.1-c1"
 dependencies = [
     "requests",
     "loguru",
