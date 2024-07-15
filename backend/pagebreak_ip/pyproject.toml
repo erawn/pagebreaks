@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pagebreaks_ip"
-version = "0.0.1-c2"
+version = "0.0.1-c3"
 dependencies = [
     "requests",
     "loguru",
-    "IPython",
+    "ipython",
     "pandas",
     "numpy",
     "jsondiff",
