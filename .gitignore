@@ -12,7 +12,7 @@ pagebreaks/labextension/**
 pagebreaks/__pycache__/
 # Version file is handled by hatchling
 _version.py
-
+venv
 backend/pagebreak_ip/Demos/babynames/*
 backend/pagebreak_ip/Demos/fec/*
 backend/pagebreak_ip/Demos/movielens/*

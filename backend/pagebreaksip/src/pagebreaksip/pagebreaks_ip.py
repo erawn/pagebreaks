@@ -16,9 +16,8 @@ from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.testing.globalipapp import start_ipython
 from loguru import logger
-from pagebreak_magic import pagebreak_magics  # type: ignore
 from pandas import DataFrame, Series
-
+from pagebreaksip.pagebreak_magic import pagebreak_magics
 # from backend.pagebreak_ip.src.pagebreak_magic import pagebreak_magics
 
 DEBUG = False

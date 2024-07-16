@@ -4,10 +4,7 @@ import typing
 import numpy as np
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.utils.capture import capture_output
-
-import backend.pagebreak_ip.src.pagebreaks_ip as pagebreaks_ip
-
-
+from pagebreaksip.pagebreaks_ip import PagebreaksASTTransformer
 class Test_IP:
 
     def test_default(self, ip: TerminalInteractiveShell):
@@ -86,9 +83,10 @@ def f():
         )
         found = False
         for transformer in ip.ast_transformers: # type: ignore
-            if str(type(transformer)) == "<class 'pagebreaks_ip.PagebreaksASTTransformer'>":
+            print (str(type(transformer)))
+            if str(type(transformer)) == "<class 'pagebreaksip.pagebreaks_ip.PagebreaksASTTransformer'>":
                 found = True
-                astTransform = typing.cast(pagebreaks_ip.PagebreaksASTTransformer,transformer)
+                astTransform = typing.cast(PagebreaksASTTransformer,transformer)
                 assert not 'a' in astTransform.userVariables.get(0, set())
         assert found
 

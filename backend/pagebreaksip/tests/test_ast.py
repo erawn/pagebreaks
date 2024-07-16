@@ -1,7 +1,6 @@
 import ast
 
-import backend.pagebreak_ip.src.pagebreaks_ip as pagebreaks_ip
-
+import pagebreaksip.pagebreaks_ip as pagebreaks_ip
 # data = pagebreak.astWalkData(1, {1:pagebreak.trackedNames(),2: pagebreak.trackedNames()},{1:["asf", "f"],2:["foo"]}, True)
 
 
