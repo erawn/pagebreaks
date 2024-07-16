@@ -17,12 +17,15 @@ A full open-source release will be out on PyPi after we can incorporate what we 
 If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to forward this to anyone you think might be interested! Thanks!
 
 ## Install
+
 To install the extension, execute:
+
 ```bash
 python -m pip install pagebreaks pagebreaksip
 ```
-Then, open Jupyter Lab ```jupyter lab``` and open a Notebook.
-You should see a warning banner telling you to run ```%load_ext pagebreaksip```, at which point the warning will disappear, and you'll be good to go. 
+
+Then, open Jupyter Lab `jupyter lab` and open a Notebook.
+You should see a warning banner telling you to run `%load_ext pagebreaksip`, at which point the warning will disappear, and you'll be good to go.
 
 ## Overview
 
