@@ -23,11 +23,11 @@
     .jp-mod-multiSelected
   ) {
   &.jp-pb-pagebreakEven {
-    background: rgb(164 229 255 / 60%);
+    background: rgb(42 194 255);
   }
 
   &.jp-pb-pagebreakOdd {
-    background: rgb(164 255 181 / 60%);
+    background: rgb(70 194 93);
   }
 }
 
@@ -35,11 +35,11 @@
   margin-left: 50px;
 
   &.jp-pb-pagebreakEven {
-    background: rgb(164 229 255 / 40%);
+    background: rgb(42 194 255 / 70%);
   }
 
   &.jp-pb-pagebreakOdd {
-    background: rgb(164 255 181 / 40%);
+    background: rgb(70 194 93 / 70%);
   }
 }
 
@@ -50,11 +50,11 @@
   margin-bottom: 15px;
 
   &.jp-pb-pagebreakEven {
-    background: rgb(164 229 255 / 63%);
+    background: rgb(42 194 255);
   }
 
   &.jp-pb-pagebreakOdd {
-    background: rgb(164 255 181 / 63%);
+    background: rgb(70 194 93);
   }
 }
 
@@ -63,12 +63,16 @@
   margin-left: 0;
 
   &.jp-pb-pagebreakEven {
-    background: rgb(164 229 255 / 63%);
+    background: rgb(42 194 255);
   }
 
   &.jp-pb-pagebreakOdd {
-    background: rgb(164 255 181 / 63%);
+    background: rgb(70 194 93);
   }
+}
+
+.lm-Widget.jp-Notebook-footer {
+  margin-top: 40px;
 }
 
 .jp-Notebook-cell.jp-mod-dropTarget-bottom,
@@ -78,6 +82,7 @@
   border-bottom-style: solid;
   /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
   border-bottom-width: 2px;
+  margin-bottom: 20px;
 }
 
 /* .jp-pb-variableList {
@@ -117,7 +122,7 @@
 }
 
 .jp-pb-poorly-formed-export-hover ::before {
-  content: 'Export Statement Poorly Formed, should look like:\A "Export { var1 var2 var3 }"';
+  content: 'Export Statement Poorly Formed, should look like:\A "export { var1 var2 var3 }"';
   visibility: hidden;
   opacity: 0;
   width: 40%;

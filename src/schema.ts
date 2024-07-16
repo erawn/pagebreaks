@@ -32,7 +32,7 @@ function buildNotebookSchema(notebook: NotebookPanel) {
       if (variables === null) {
         variables = [];
         cell.node.title =
-          'Export Statement Poorly Formed, should look like:\n "Export { var1 var2 var3 }"';
+          'Export Statement Poorly Formed, should look like:\n "export { var1 var2 var3 }"';
         cell.editorWidget?.addClass('jp-pb-poorly-formed-export');
       } else {
         cell.node.title = '';

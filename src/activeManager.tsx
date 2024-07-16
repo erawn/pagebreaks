@@ -22,7 +22,7 @@ class PluginStatusHeader extends ReactWidget {
         </span>
         <br></br>
         <span className="jp-pb-pluginstatus-bottomtext">
-          Run '%load_ext pagebreaks_ip' to load
+          Run '%load_ext pagebreaksip' to load
         </span>
       </>
     );
@@ -147,8 +147,9 @@ export class activeManager {
         }
         if (KernelMessage.isStreamMsg(msg)) {
           const result = msg as KernelMessage.IStreamMsg;
+          console.log(result);
           if (
-            result.content.text.search("'pagebreaks_ip'") > 0 &&
+            result.content.text.search("'pagebreaksip'") > 0 &&
             result.content.text.search('PagebreaksASTTransformer') > 0
           ) {
             this.setPluginStatus('active', notebook);
@@ -180,7 +181,7 @@ export class activeManager {
       if (this.headerWidget === null) {
         this.headerWidget = new PluginStatusHeader();
       }
-
+      console.log(this.status);
       if (this.status !== 'inactive') {
         this.headerWidget.setHidden(true);
       } else {
