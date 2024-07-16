@@ -182,7 +182,7 @@ export class activeManager {
         this.headerWidget = new PluginStatusHeader();
       }
       console.log(this.status);
-      if (this.status !== 'inactive') {
+      if (this.status === 'active') {
         this.headerWidget.setHidden(true);
       } else {
         this.headerWidget.setHidden(false);
