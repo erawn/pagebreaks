@@ -86,10 +86,18 @@ export class pagebreakEventHandlers {
     this.addStudyListeners();
   }
   addStudyListeners() {
-    this._notebook.outerNode.addEventListener('scrollend', this);
+    if (this._notebook.outerNode === undefined) {
+      console.log("Pagebreaks: Can't Attach ScrollEnd");
+    } else {
+      this._notebook.outerNode?.addEventListener('scrollend', this);
+    }
   }
   removeStudyListeners() {
-    this._notebook.outerNode.removeEventListener('scrollend', this);
+    if (this._notebook.outerNode === undefined) {
+      console.log("Pagebreaks: Can't Attach ScrollEnd");
+    } else {
+      this._notebook.outerNode?.removeEventListener('scrollend', this);
+    }
   }
 
   addListeners() {
@@ -138,46 +146,6 @@ export class pagebreakEventHandlers {
     if (!this._notebook.model) {
       console.log('no model');
       return;
-    }
-    switch (event.type) {
-      case 'scroll':
-        console.log('SCROLLTOP');
-        break;
-      case 'scrollend':
-        this.handleScrollEnd(event as MouseEvent);
-        break;
-      case 'mousedown':
-        if (event.eventPhase === Event.CAPTURING_PHASE) {
-          this.handleMouseDownCapture(event as MouseEvent);
-        } else {
-          // Skip processing the event when it resulted from a toolbar button click
-          if (!event.defaultPrevented) {
-            this.handleMouseDown(event as MouseEvent);
-          }
-        }
-        break;
-      case 'mouseup':
-        if (event.currentTarget === document) {
-          this._evtDocumentMouseup(event as MouseEvent);
-        }
-        break;
-      case 'mousemove':
-        if (event.currentTarget === document) {
-          this._evtDocumentMousemove(event as MouseEvent);
-        }
-        break;
-      case 'lm-dragover':
-        this.handleDragOver(event as Drag.Event);
-        break;
-      case 'lm-drop':
-        this.handleDrop(event as Drag.Event);
-        break;
-      case 'lm-dragleave':
-        this.handleDragLeave(event as Drag.Event);
-        break;
-      // default:
-      //     super.handleEvent(event);
-      //     break;
     }
   }
 
