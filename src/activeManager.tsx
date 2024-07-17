@@ -147,7 +147,7 @@ export class activeManager {
         }
         if (KernelMessage.isStreamMsg(msg)) {
           const result = msg as KernelMessage.IStreamMsg;
-          console.log(result);
+          // console.log(result);
           if (
             result.content.text.search("'pagebreaksip'") > 0 &&
             result.content.text.search('PagebreaksASTTransformer') > 0
@@ -181,7 +181,7 @@ export class activeManager {
       if (this.headerWidget === null) {
         this.headerWidget = new PluginStatusHeader();
       }
-      console.log(this.status);
+      // console.log(this.status);
       if (this.status === 'active') {
         this.headerWidget.setHidden(true);
       } else {
