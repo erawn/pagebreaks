@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "pagebreaksip>=0.1.4",
+    "pagebreaksip>=0.1.6",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
