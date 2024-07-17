@@ -59,7 +59,7 @@
 }
 
 .jp-Notebook .jp-Cell.jp-MarkdownCell.jp-Notebook-cell.jp-pb-header {
-  margin-top: 15px;
+  margin-top: 0;
   margin-left: 0;
 
   &.jp-pb-pagebreakEven {
@@ -72,7 +72,7 @@
 }
 
 .lm-Widget.jp-Notebook-footer {
-  margin-top: 40px;
+  margin-top: 0;
 }
 
 .jp-Notebook-cell.jp-mod-dropTarget-bottom,
@@ -82,7 +82,7 @@
   border-bottom-style: solid;
   /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
   border-bottom-width: 2px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 /* .jp-pb-variableList {

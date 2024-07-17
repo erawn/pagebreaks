@@ -4,7 +4,7 @@ Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) w
 
 The goal is to make it easier to keep variables organized in notebooks while changing as little as possible about how notebook programmers like to work. To do that, _Pagebreaks_ allows users to organize their notebook state by organizing their cells within the notebook.
 
-## Participate in Research!
+## Participate in Research
 
 My name is Eric Rawn. I’m a PhD student at UC Berkeley. To build the best system we can (and do some research along the way), we’re evaluating how our extension aids how real users program, and so we’re running a 4-6 week study with folks who use Jupyter notebooks regularly in their everyday programming. We're especially interested in how Pagebreaks might help _data science programmers_, so if that's you, we would really appreciate your insight!
 
@@ -14,7 +14,7 @@ A full open-source release will be out on PyPi after we can incorporate what we 
 
 **If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)**
 
-If you have any questions at all, feel free to send me an email at erawn@berkeley.edu, and feel free to forward this to anyone you think might be interested! Thanks!
+If you have any questions at all, feel free to send me an email at <erawn@berkeley.edu>, and feel free to forward this to anyone you think might be interested! Thanks!
 
 ## Install
 
@@ -85,6 +85,11 @@ For example:
 ### %who_pb
 
 We've added the IPython magic `%who_pb"`, which is a pagebreaks-specific version of `%who_ls`. `%who_pb"` prints out your notebook state by its pagebreak, listing whether each variable is _currently_ being exported. Pagebreaks only generates the export variables it needs for each cell, so you won't see variables that are exported in later pagebreaks, because those are currently out of scope!
+
+## Autoloading the IPython Plugin
+
+To avoid having to run `%load_ext pagebreaksip` each time you start your kernel, you can start it automatically by adding:
+`c.InteractiveShellApp.extensions.append('pagebreaksip')` to your `.ipython/profile/ipython_config.py` file.
 
 ## How it works
 
