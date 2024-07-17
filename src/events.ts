@@ -86,10 +86,56 @@ export class pagebreakEventHandlers {
     this.addStudyListeners();
   }
   addStudyListeners() {
-    this._notebook.outerNode.addEventListener('scrollend', this);
+    // this._notebookPanel.node.addEventListener('scrollend', this, {
+    //   passive: true
+    // });
+    this._notebookPanel.node
+      .querySelector('[data-lm-dragscroll="true"]')
+      ?.addEventListener('scrollend', this, {
+        passive: true
+      });
+    // const elems = document.querySelectorAll('[data-lm-dragscroll="true"]');
+    // elems.forEach(elem => {
+    //   elem.classList;
+    // });
+    // console.log(this._notebookPanel.node.getAttribute('data-lm-dragscroll'));
+    // const elements = this._notebookPanel.node.getElements;
+    // console.log(elements);
+    // for (let i = 0; i < elements.length; i++) {
+    //   const item = elements.item(i);
+    //   console.log(item);
+    //   // console.log(item?.getAttributeNames());
+    //   const children = item?.getElementsByClassName('jp-WindowedPanel-outer');
+    //   console.log(children);
+    //   if (children && children?.length > 0) {
+    //     console.log('added event listener!');
+    //     children.item(0)?.addEventListener('scrollend', this, {
+    //       passive: true
+    //     });
+    //   }
+    // }
+    // .getElementsByClassName('data-lm-dragscroll')
+    // if (this._notebook.outerNode === undefined) {
+    //   console.log("Pagebreaks: Can't Attach ScrollEnd");
+    //   if (this._notebookPanel.content.outerNode) {
+    //     this._notebookPanel.content.outerNode.addEventListener(
+    //       'scrollend',
+    //       this,
+    //       { passive: true }
+    //     );
+    //   }
+    // } else {
+    //   this._notebook.outerNode?.addEventListener('scrollend', this, {
+    //     passive: true
+    //   });
+    // }
   }
   removeStudyListeners() {
-    this._notebook.outerNode.removeEventListener('scrollend', this);
+    if (this._notebook.outerNode === undefined) {
+      console.log("Pagebreaks: Can't Attach ScrollEnd");
+    } else {
+      this._notebook.outerNode?.removeEventListener('scrollend', this);
+    }
   }
 
   addListeners() {
@@ -340,7 +386,7 @@ export class pagebreakEventHandlers {
       .sort((a, b) => (a[0] as number) - (b[0] as number));
     const firstVisible = onScreen.at(0)?.at(0);
     const lastVisible = onScreen.at(-1)?.at(0);
-    console.log(firstVisible, lastVisible);
+    // console.log(firstVisible, lastVisible);
     sendLog(
       this._notebookPanel,
       'SCROLLEND [' + firstVisible + ',' + lastVisible + ']',

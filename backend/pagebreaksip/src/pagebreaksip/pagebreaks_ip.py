@@ -14,7 +14,6 @@ import numpy as np
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.interactiveshell import ExecutionInfo, ExecutionResult
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
-from IPython.testing.globalipapp import start_ipython
 from loguru import logger
 from pagebreaksip.pagebreak_magic import pagebreak_magics
 from pandas import DataFrame, Series
@@ -46,7 +45,7 @@ logger.remove() #to remove std
 
 fmt = "{time} - {name} - {level}"
 logger.add("./pagebreaks/pagebreaks_study.log",watch=True,serialize=True, filter=lambda record: "study" in record["extra"],rotation="50 MB",compression="gz", enqueue=True)
-logger.add("pagebreaks_debug.log",level="ERROR",retention=3,rotation="50 MB",compression="gz",filter=lambda record: "study" not in record["extra"],enqueue = True)
+logger.add("./pagebreaks/pagebreaks_debug.log",watch=True,level="ERROR",retention=3,rotation="50 MB",compression="gz",filter=lambda record: "study" not in record["extra"],enqueue = True)
 study_logger = logger.bind(study=True)
 # logger.add()
 # logger = logging.getLogger("pagebreaks")
