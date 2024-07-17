@@ -147,6 +147,46 @@ export class pagebreakEventHandlers {
       console.log('no model');
       return;
     }
+    switch (event.type) {
+      case 'scroll':
+        console.log('SCROLLTOP');
+        break;
+      case 'scrollend':
+        this.handleScrollEnd(event as MouseEvent);
+        break;
+      case 'mousedown':
+        if (event.eventPhase === Event.CAPTURING_PHASE) {
+          this.handleMouseDownCapture(event as MouseEvent);
+        } else {
+          // Skip processing the event when it resulted from a toolbar button click
+          if (!event.defaultPrevented) {
+            this.handleMouseDown(event as MouseEvent);
+          }
+        }
+        break;
+      case 'mouseup':
+        if (event.currentTarget === document) {
+          this._evtDocumentMouseup(event as MouseEvent);
+        }
+        break;
+      case 'mousemove':
+        if (event.currentTarget === document) {
+          this._evtDocumentMousemove(event as MouseEvent);
+        }
+        break;
+      case 'lm-dragover':
+        this.handleDragOver(event as Drag.Event);
+        break;
+      case 'lm-drop':
+        this.handleDrop(event as Drag.Event);
+        break;
+      case 'lm-dragleave':
+        this.handleDragLeave(event as Drag.Event);
+        break;
+      // default:
+      //     super.handleEvent(event);
+      //     break;
+    }
   }
 
   // notebookEventHandlers(app: JupyterFrontEnd) {
