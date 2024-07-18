@@ -78,7 +78,7 @@ jobs:
           # Remove NodeJS, twice to take care of system and locally installed node versions.
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
-
+          
           pip install "jupyterlab>=4.0.0,<5" pagebreaks*.whl
 
 
