@@ -80,10 +80,10 @@ class schemaManager {
     //     console.log('delete cell', cell.model.id);
     //   }
     // }, this);
-    notebook.modelContentChanged.connect(
-      (slot, args) => console.log('model content changed', args),
-      this
-    );
+    // notebook.modelContentChanged.connect(
+    //   (slot, args) => console.log('model content changed', args),
+    //   this
+    // );
     notebook.stateChanged.connect((notebook, args) => {
       // console.log('nb state changed', args);
       if (args.name === 'mode') {

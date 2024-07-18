@@ -1,6 +1,6 @@
 {
     "name": "pagebreaks",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "description": "Scope Boundaries for Jupyter Notebooks",
     "keywords": [
         "jupyter",
@@ -55,7 +55,8 @@
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "tsc -w --sourceMap",
         "watch:labextension": "jupyter labextension watch .",
-        "postinstall": "husky"
+        "postinstall": "husky",
+        "publish": "bash ./.husky/pre-commit && jlpm clean:all && python -m build && twine upload dist/*"
     },
     "dependencies": {
         "@jupyterlab/application": "^4.0.0",
