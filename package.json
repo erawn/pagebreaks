@@ -56,7 +56,7 @@
         "watch:src": "tsc -w --sourceMap",
         "watch:labextension": "jupyter labextension watch .",
         "postinstall": "husky",
-        "publish":"bash ./.husky/pre-commit && jlpm clean:all && python -m build && twine upload dist/*"
+        "publish": "bash ./.husky/pre-commit && jlpm clean:all && python -m build && twine upload dist/*"
     },
     "dependencies": {
         "@jupyterlab/application": "^4.0.0",
