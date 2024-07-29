@@ -118,44 +118,46 @@ class pagebreak_magics(Magics):
         exportedwidth = len(exportedLabel) + colsep
         scopewidth = len(scopeLabel) + colsep
         # table header
-        print(varlabel.ljust(varwidth) + typelabel.ljust(typewidth) + scopeLabel.ljust(scopewidth) + exportedLabel.ljust(exportedwidth) + \
-              ' '+datalabel+'\n' + '-'*(varwidth+typewidth+len(datalabel)+1))
+        print(varlabel.ljust(varwidth) + typelabel.ljust(typewidth) + scopeLabel.ljust(scopewidth) + exportedLabel.ljust(exportedwidth)
+        # + ' '+datalabel+'\n' 
+            #   + '-'*(varwidth+typewidth+len(datalabel)+1)
+              )
         # and the table itself
         kb = 1024
         Mb = 1048576  # kb**2
         def printEntry(vname: str,var: Any,vtype:str, scope: str = "global", exported:str = ""):
-            print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end=' ')
-            if vtype in seq_types:
-                print("n="+str(len(var)))
-            elif vtype == ndarray_type:
-                vshape = str(var.shape).replace(',','').replace(' ','x')[1:-1]
-                if vtype==ndarray_type:
-                    # numpy
-                    vsize  = var.size
-                    vbytes = vsize*var.itemsize
-                    vdtype = var.dtype
+            print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end='\n')
+            # if vtype in seq_types:
+            #     print("n="+str(len(var)))
+            # elif vtype == ndarray_type:
+            #     vshape = str(var.shape).replace(',','').replace(' ','x')[1:-1]
+            #     if vtype==ndarray_type:
+            #         # numpy
+            #         vsize  = var.size
+            #         vbytes = vsize*var.itemsize
+            #         vdtype = var.dtype
 
-                if vbytes < 100000:
-                    print(aformat % (vshape, vsize, vdtype, vbytes))
-                else:
-                    print(aformat % (vshape, vsize, vdtype, vbytes), end=' ')
-                    if vbytes < Mb:
-                        print('(%s kb)' % (vbytes/kb,))
-                    else:
-                        print('(%s Mb)' % (vbytes/Mb,))
-            else:
-                try:
-                    vstr = str(var)
-                except UnicodeEncodeError:
-                    vstr = var.encode(DEFAULT_ENCODING,
-                                        'backslashreplace')
-                except:
-                    vstr = "<object with id %d (str() failed)>" % id(var)
-                vstr = vstr.replace('\n', '\\n')
-                if len(vstr) < 50:
-                    print(vstr)
-                else:
-                    print(vstr[:25] + "<...>" + vstr[-25:])
+            #     if vbytes < 100000:
+            #         print(aformat % (vshape, vsize, vdtype, vbytes))
+            #     else:
+            #         print(aformat % (vshape, vsize, vdtype, vbytes), end=' ')
+            #         if vbytes < Mb:
+            #             print('(%s kb)' % (vbytes/kb,))
+            #         else:
+            #             print('(%s Mb)' % (vbytes/Mb,))
+            # else:
+            #     try:
+            #         vstr = str(var)
+            #     except UnicodeEncodeError:
+            #         vstr = var.encode(DEFAULT_ENCODING,
+            #                             'backslashreplace')
+            #     except:
+            #         vstr = "<object with id %d (str() failed)>" % id(var)
+            #     vstr = vstr.replace('\n', '\\n')
+            #     if len(vstr) < 50:
+            #         print(vstr)
+            #     else:
+            #         print(vstr[:25] + "<...>" + vstr[-25:])
 
         for scopeNum in sorted(varsByScope):
             # print("Pagebreak : ", str(scopeNum))
