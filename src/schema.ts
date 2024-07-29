@@ -5,7 +5,7 @@ import {
   NotebookPanel,
   NotebookTracker
 } from '@jupyterlab/notebook';
-import { KernelMessage } from '@jupyterlab/services';
+import { Kernel, KernelMessage } from '@jupyterlab/services';
 import _ from 'lodash';
 import { activeManager } from './activeManager';
 import { schemaManager } from './schemaManager';
@@ -228,6 +228,35 @@ function sendLog(
       console.log('sendLog', msg.content);
     }
   };
+}
+function sendTransform(
+  notebookTracker: INotebookTracker | NotebookPanel,
+  message: string
+):
+  | Kernel.IShellFuture<
+      KernelMessage.IExecuteRequestMsg,
+      KernelMessage.IExecuteReplyMsg
+    >
+  | undefined {
+  const notebook =
+    notebookTracker instanceof NotebookTracker
+      ? notebookTracker.currentWidget
+      : (notebookTracker as NotebookPanel);
+  const content: KernelMessage.IExecuteRequestMsg['content'] = {
+    code: message,
+    silent: true,
+    store_history: false
+  };
+  const kernel = notebook?.sessionContext?.session?.kernel;
+  if (!kernel) {
+    console.error('Session has no kernel.');
+    return undefined;
+  }
+  // console.log('sending Schema', schema);
+  const future = kernel.requestExecute(content);
+  // Handle iopub messages
+
+  return future;
 
   // kernelModel.execute();
 }
@@ -362,4 +391,11 @@ function sendJSONDiffInner(
 //   return didModify;
 // }
 
-export { buildNotebookSchema, parseExport, sendJSONDiff, sendLog, sendSchema };
+export {
+  buildNotebookSchema,
+  parseExport,
+  sendJSONDiff,
+  sendLog,
+  sendSchema,
+  sendTransform
+};

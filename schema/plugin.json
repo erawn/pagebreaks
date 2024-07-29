@@ -33,5 +33,13 @@
         "command": "toolbar-button:run-pagebreak"
       }
     ]
+  },
+  "jupyter.lab.menus": {
+    "context":[  
+      {
+        "command": "docmanager:convert-pagebreak",
+        "selector": "[data-type=\"document-title\"]",
+        "rank": 29
+      }]    
   }
 }
