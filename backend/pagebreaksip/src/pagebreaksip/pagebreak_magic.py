@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import ast
 import json
 import re
 import sys
@@ -7,6 +8,8 @@ import typing
 from typing import Any, Dict, List, Set, Tuple, Type
 
 import jsondiff as jd
+import pagebreaksip
+from IPython.core.interactiveshell import ExecutionInfo
 from IPython.core.magic import (Magics, cell_magic, line_cell_magic,
                                 line_magic, magics_class)
 from IPython.core.magics.namespace import NamespaceMagics
@@ -22,11 +25,12 @@ reload_regex = re.compile(r"""NAME\[([^\]]*)\]RELOAD_NOTEBOOK:""")
 @magics_class
 class pagebreak_magics(Magics):
 
-    def __init__(self, shell):
+    def __init__(self, shell, pb):
         super(pagebreak_magics, self).__init__(shell)
         self.shell: TerminalInteractiveShell = shell
         self.schema = None
         self.currentJSON = None
+        self._pb = pb
 
     @line_magic
     def print_schema(self, line):
@@ -114,44 +118,46 @@ class pagebreak_magics(Magics):
         exportedwidth = len(exportedLabel) + colsep
         scopewidth = len(scopeLabel) + colsep
         # table header
-        print(varlabel.ljust(varwidth) + typelabel.ljust(typewidth) + scopeLabel.ljust(scopewidth) + exportedLabel.ljust(exportedwidth) + \
-              ' '+datalabel+'\n' + '-'*(varwidth+typewidth+len(datalabel)+1))
+        print(varlabel.ljust(varwidth) + typelabel.ljust(typewidth) + scopeLabel.ljust(scopewidth) + exportedLabel.ljust(exportedwidth)
+        # + ' '+datalabel+'\n' 
+            #   + '-'*(varwidth+typewidth+len(datalabel)+1)
+              )
         # and the table itself
         kb = 1024
         Mb = 1048576  # kb**2
         def printEntry(vname: str,var: Any,vtype:str, scope: str = "global", exported:str = ""):
-            print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end=' ')
-            if vtype in seq_types:
-                print("n="+str(len(var)))
-            elif vtype == ndarray_type:
-                vshape = str(var.shape).replace(',','').replace(' ','x')[1:-1]
-                if vtype==ndarray_type:
-                    # numpy
-                    vsize  = var.size
-                    vbytes = vsize*var.itemsize
-                    vdtype = var.dtype
+            print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end='\n')
+            # if vtype in seq_types:
+            #     print("n="+str(len(var)))
+            # elif vtype == ndarray_type:
+            #     vshape = str(var.shape).replace(',','').replace(' ','x')[1:-1]
+            #     if vtype==ndarray_type:
+            #         # numpy
+            #         vsize  = var.size
+            #         vbytes = vsize*var.itemsize
+            #         vdtype = var.dtype
 
-                if vbytes < 100000:
-                    print(aformat % (vshape, vsize, vdtype, vbytes))
-                else:
-                    print(aformat % (vshape, vsize, vdtype, vbytes), end=' ')
-                    if vbytes < Mb:
-                        print('(%s kb)' % (vbytes/kb,))
-                    else:
-                        print('(%s Mb)' % (vbytes/Mb,))
-            else:
-                try:
-                    vstr = str(var)
-                except UnicodeEncodeError:
-                    vstr = var.encode(DEFAULT_ENCODING,
-                                        'backslashreplace')
-                except:
-                    vstr = "<object with id %d (str() failed)>" % id(var)
-                vstr = vstr.replace('\n', '\\n')
-                if len(vstr) < 50:
-                    print(vstr)
-                else:
-                    print(vstr[:25] + "<...>" + vstr[-25:])
+            #     if vbytes < 100000:
+            #         print(aformat % (vshape, vsize, vdtype, vbytes))
+            #     else:
+            #         print(aformat % (vshape, vsize, vdtype, vbytes), end=' ')
+            #         if vbytes < Mb:
+            #             print('(%s kb)' % (vbytes/kb,))
+            #         else:
+            #             print('(%s Mb)' % (vbytes/Mb,))
+            # else:
+            #     try:
+            #         vstr = str(var)
+            #     except UnicodeEncodeError:
+            #         vstr = var.encode(DEFAULT_ENCODING,
+            #                             'backslashreplace')
+            #     except:
+            #         vstr = "<object with id %d (str() failed)>" % id(var)
+            #     vstr = vstr.replace('\n', '\\n')
+            #     if len(vstr) < 50:
+            #         print(vstr)
+            #     else:
+            #         print(vstr[:25] + "<...>" + vstr[-25:])
 
         for scopeNum in sorted(varsByScope):
             # print("Pagebreak : ", str(scopeNum))
@@ -207,7 +213,67 @@ class pagebreak_magics(Magics):
         else:
             study_logger.info(cell)
         return
+    @cell_magic 
+    def pb_transform(self,line,cell):
+        msg = typing.cast(str,cell)
+        cellList = json.loads(msg)
+        if self.schema == None:
+            return
 
+        for cell in cellList:
+            if cell.get('type') == 'pagebreak':
+                pbnum = cell.get("pbNum")
+                # print(pbnum)
+                exportvars = self._pb.ast_transformer.getStoredData().exportedVariables.get(pbnum)
+                # print(exportvars)
+                base = ast.Module(body=[],type_ignores=[])
+                for var,index in zip(exportvars,range(len(exportvars))):
+                    exportName = pagebreaksip.transformName(var,pbnum,True)
+                    localName = pagebreaksip.transformName(var,pbnum,False)
+                    base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
+                cell["newText"] = ast.unparse(base)
+            if cell.get('type') == 'code':
+                 
+                    # cellsToScopes: dict[str, int] = self.schema.get("cellsToScopes", {})
+                    # currentContext: int = cellsToScopes.get(str(cell.get('id')), -1)
+
+                    # if currentContext == -1:
+                    #     print('couldnt find scope!')
+                    #     break;
+                    
+                    # data = self._pb.ast_transformer.getStoredData()
+                    # data.currentContext = currentContext
+                    # self._pb.ast_transformer.setStoredData(data)
+                self._pb.pre_run_cell(ExecutionInfo("", False, True, False, cell.get('id')))
+                text = cell.get("source")
+                program_ast = self.shell.compile.ast_parse(self.shell.transform_cell(text))
+                transformed = self._pb.ast_transformer.visit(program_ast)
+                newText = ast.unparse(transformed)
+                cell["newText"] = newText
+                
+        print(json.dumps(cellList))
+        # program_ast = self.shell.compile.ast_parse(msg)
+        # # program_ast = asttokens.ASTTokens(msg,parse=True)
+        # transformed = self._pb.ast_transformer.visit(program_ast)
+        # print(ast.dump(transformed))
+        # Assign(targets=[Name(id='pb_0_a', ctx=Store())], value=Constant(value=2))
+        # print(ast.unparse(transformed))
+        return
+    @line_magic 
+    def pb_transform_export(self,line):
+        msg = typing.cast(str,line)
+        pbnum = int(msg)
+        print(pbnum)
+        exportvars = self._pb.ast_transformer.getStoredData().exportedVariables.get(pbnum)
+        print(exportvars)
+        base = ast.Module(body=[],type_ignores=[])
+        
+        for var,index in zip(exportvars,range(len(exportvars))):
+            exportName = pagebreaksip.transformName(var,pbnum,True)
+            localName = pagebreaksip.transformName(var,pbnum,False)
+            base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
+        print(ast.unparse(base))
+        return 
     @cell_magic
     def pb_update(self, line, cell):
         "Magic that works both as %lcmagic and as %%lcmagic"

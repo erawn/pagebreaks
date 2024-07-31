@@ -777,7 +777,7 @@ def load_ipython_extension(ip: TerminalInteractiveShell):
     ip.run_line_magic("lsmagic", "")
     existing_pb_magic = ip.find_magic("%pb_update", "line")
     if existing_pb_magic is None:
-        _pb_magics = pagebreak_magics(ip)
+        _pb_magics = pagebreak_magics(ip,_pb)
         ip.register_magics(_pb_magics)
         _pb.set_magics(_pb_magics)
     else:

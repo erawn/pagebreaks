@@ -6,7 +6,11 @@ import {
 // import { IEditorServices } from '@jupyterlab/codeeditor';
 import { ICommandPalette, ISessionContextDialogs } from '@jupyterlab/apputils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
+import {
+  INotebookTracker,
+  NotebookActions,
+  NotebookPanel
+} from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import _ from 'lodash';
 import '../style/index.css';
@@ -130,7 +134,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       },
       manager,
       sessionDialogs,
-      isActiveManager
+      isActiveManager,
+      docManager
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -287,6 +292,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           updatePagebreak(app, notebookTracker, manager, isActiveManager);
         }
       }
+    });
+    NotebookActions.executionScheduled.connect(() => {
+      updatePagebreakFunc(app, notebookTracker, manager, isActiveManager, true);
     });
   }
 };
