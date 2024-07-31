@@ -83,7 +83,7 @@ class pagebreak_magics(Magics):
                 if(scopeName != "export"):
                     scopeNum = int(scopeName)
                     newVal = varsByScope.get(scopeNum,[])
-                    newVal.append((name.partition("_"+scopeName+"_")[2],self.shell.user_ns[name],get_type(name)))
+                    newVal.append((name.partition("_"+scopeName+"_")[2],self.shell.user_ns[name],get_type(self.shell.user_ns[name])))
                     # print("new val",newVal)
                     varsByScope.update({scopeNum: newVal})
         # print("vars", varsByScope)
