@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "pagebreaksip>=0.1.11",
+    "pagebreaksip>=0.1.12",
     "jupyterlab>=4.0.0",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
