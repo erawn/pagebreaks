@@ -34,7 +34,7 @@ class pagebreak_magics(Magics):
 
     @line_magic
     def print_schema(self, line):
-        print(self.schema)
+        print(json.dumps(self.schema))
         return
 
     @line_magic
@@ -216,7 +216,7 @@ class pagebreak_magics(Magics):
     @cell_magic 
     def pb_transform(self,line,cell):
         msg = typing.cast(str,cell)
-        cellList = json.loads(msg)
+        cellList = json.loads(msg,strict=False)
         if self.schema == None:
             return
 
@@ -225,13 +225,15 @@ class pagebreak_magics(Magics):
                 pbnum = cell.get("pbNum")
                 # print(pbnum)
                 exportvars = self._pb.ast_transformer.getStoredData().exportedVariables.get(pbnum)
-                # print(exportvars)
-                base = ast.Module(body=[],type_ignores=[])
-                for var,index in zip(exportvars,range(len(exportvars))):
-                    exportName = pagebreaksip.transformName(var,pbnum,True)
-                    localName = pagebreaksip.transformName(var,pbnum,False)
-                    base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
-                cell["newText"] = ast.unparse(base)
+                if(exportvars is None):
+                    cell["newText"] = ""
+                else:
+                    base = ast.Module(body=[],type_ignores=[])
+                    for var,index in zip(exportvars,range(len(exportvars))):
+                        exportName = pagebreaksip.transformName(var,pbnum,True)
+                        localName = pagebreaksip.transformName(var,pbnum,False)
+                        base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
+                    cell["newText"] = ast.unparse(base)
             if cell.get('type') == 'code':
                  
                     # cellsToScopes: dict[str, int] = self.schema.get("cellsToScopes", {})

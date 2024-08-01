@@ -1,6 +1,7 @@
 import ast
 
 import pagebreaksip.pagebreaks_ip as pagebreaks_ip
+
 # data = pagebreak.astWalkData(1, {1:pagebreak.trackedNames(),2: pagebreak.trackedNames()},{1:["asf", "f"],2:["foo"]}, True)
 
 
@@ -13,7 +14,8 @@ class Test_AST:
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """
@@ -50,7 +52,8 @@ print(f())"""
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """
@@ -74,7 +77,8 @@ n.a = 4
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """
@@ -104,7 +108,8 @@ n.f(a)
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """
@@ -131,7 +136,8 @@ f()
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """
@@ -152,7 +158,8 @@ for i in range(3):
                 currentContext=0,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables={},
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=set()
             )
         )
         code = """

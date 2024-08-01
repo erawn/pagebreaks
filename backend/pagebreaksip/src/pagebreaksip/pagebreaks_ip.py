@@ -2,6 +2,7 @@ import ast
 import copy
 import itertools
 import os
+import re
 import typing
 import warnings
 from collections import Counter
@@ -65,6 +66,7 @@ class astWalkData:
     userDefinedVariables: set[str]  # the variables we've defined so far in this scope
     exportedVariables: dict[int, set[str]]  # the variables exported from each scope
     isLineMagic: bool
+    namesToIgnore: set[str]
 
 
 def transformName(name: str, context: int, export: bool = False):
@@ -279,6 +281,7 @@ class PagebreaksASTTransformer(baseASTTransform):
 
         savedVariables = self.userVariables.get(data.currentContext, set())
         savedVariables.update(trackedNames)
+        # savedVariables.difference_update(data.namesToIgnore)
         self.userVariables.update({data.currentContext: savedVariables})
         self.newlyAddedExportedVariables = (data.currentContext, trackedNames)
         
@@ -297,6 +300,9 @@ class PagebreaksASTTransformer(baseASTTransform):
     def visit_Name(self, node, data: astWalkData):
         if not data.isLineMagic:
             logger.info("visit name export variables" + str(data.exportedVariables))
+        if node.id in data.namesToIgnore:
+            print("ignoring name " + node.id)
+            return node
         # check if variable is exported from another context
         for context, exportedVariables in data.exportedVariables.items():
             if (
@@ -454,7 +460,8 @@ class Pagebreak(object):
                     currentContext=-1,
                     userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                     exportedVariables={},
-                    isLineMagic=True
+                    isLineMagic=True,
+                    namesToIgnore=set()
                 )
             )
             return
@@ -479,7 +486,8 @@ class Pagebreak(object):
                     currentContext=-1,
                     userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                     exportedVariables={},
-                    isLineMagic=True
+                    isLineMagic=True,
+                    namesToIgnore=set()
                 )
             )
             return
@@ -526,14 +534,25 @@ class Pagebreak(object):
                 + "', skipping later exports"
             )
 
-        
+        # Check for ignore_names pragma
+        cell = typing.cast(str,info.raw_cell)
+        pragmaSearch = re.compile(r"""#pagebreaks: ignore_name (\S*)""")
+        ignoreMatches = pragmaSearch.findall(cell)
+        namesToIgnore:set[str] = set()
+        for match in ignoreMatches:
+            strmatch = typing.cast(str,match)
+            if len(namesToIgnore) == 0:
+                namesToIgnore = set([strmatch])
+            else:
+                namesToIgnore.add(strmatch)
         #Set our data within the AST Transformer, which fires after we return from this function
         self.ast_transformer.setStoredData(
             astWalkData(
                 currentContext=currentContext,
                 userDefinedVariables=set(),  # this will be filled in when we start walking the tree
                 exportedVariables=cleanedScopeList,
-                isLineMagic=False
+                isLineMagic=False,
+                namesToIgnore=namesToIgnore
             )
         )
         logger.info("setting data:" + str(cleanedScopeList) + "current context" + str(currentContext))

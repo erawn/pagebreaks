@@ -5,6 +5,8 @@ import numpy as np
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from IPython.utils.capture import capture_output
 from pagebreaksip.pagebreaks_ip import PagebreaksASTTransformer
+
+
 class Test_IP:
 
     def test_default(self, ip: TerminalInteractiveShell):
@@ -248,3 +250,56 @@ a.fill(0)
 ##variable resets
 
 ## error messages
+
+class Test_IgnoreNames:
+
+    def test_ignore(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":["a"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+#pagebreaks: ignore_name d
+#pagebreaks: ignore_name testing
+c = 3
+d = c
+testing = d
+                    """,
+            cell_id="1",
+        )
+        assert ip.user_ns.get("pb_0_c") == 3
+        assert ip.user_ns.get("pb_0_d") == None
+        assert ip.user_ns.get("d") == 3
+        assert ip.user_ns.get("pb_0_testing") == None
+        assert ip.user_ns.get("testing") == 3
+
+class Test_Transform:
+
+
+    # def test_send(self,ip: TerminalInteractiveShell):
+        # with capture_output() as capture:
+        #     ip.run_cell_magic(
+        #         "pb_transform",
+        #         "",
+        #         r"""[{"index":1,"id":"3a7c2ec7-28d6-4333-9cca-1a5830504fd3","type":"code","variables":[],"source":"a = 3"},{"index":2,"id":"bdbb7230-eb78-437a-a298-db99f0cab3c8","type":"pagebreak","variables":[["a"]],"pbNum":0},{"index":4,"id":"5aadb64c-c5cc-4b4a-b0c8-e818627ade38","type":"code","variables":[],"source":"print(a)"},{"index":5,"id":"f382994c-0c95-4c35-bb8f-30e13cdf3df5","type":"pagebreak","variables":[[]],"pbNum":1},{"index":6,"id":"42afe96b-0bc3-4fd7-b130-fa0e79a3e0b3","type":"code","variables":[],"source":""}]""",
+        #     )
+        # assert """[{"index": 1, "id": "3a7c2ec7-28d6-4333-9cca-1a5830504fd3", "type": "code", "variables": [], "source": "a = 3", "newText": "pb_0_a = 3"}, {"index": 2, "id": "bdbb7230-eb78-437a-a298-db99f0cab3c8", "type": "pagebreak", "variables": [["a"]], "pbNum": 0, "newText": "pb_export_pagebreaks_simulated = pb_0_pagebreaks_simulated"}, {"index": 4, "id": "5aadb64c-c5cc-4b4a-b0c8-e818627ade38", "type": "code", "variables": [], "source": "print(a)", "newText": "print(pb_0_a)"}, {"index": 5, "id": "f382994c-0c95-4c35-bb8f-30e13cdf3df5", "type": "pagebreak", "variables": [[]], "pbNum": 1, "newText": ""}, {"index": 6, "id": "42afe96b-0bc3-4fd7-b130-fa0e79a3e0b3", "type": "code", "variables": [], "source": "", "newText": ""}]""" in capture.stdout
+    def test_send2(self,ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes": {"96213e44-5add-4916-99aa-bdf92ee22c2e": 0, "3a7c2ec7-28d6-4333-9cca-1a5830504fd3": 0, "c20d84b7-61a5-4255-aa09-24285a3b9c08": 1, "ea972339-1123-465f-a881-d165edfdaa26": 1, "b50e91d7-1d06-41bd-b5d5-d02598d40926": 2, "5aadb64c-c5cc-4b4a-b0c8-e818627ade38": 2, "42afe96b-0bc3-4fd7-b130-fa0e79a3e0b3": 3, "be1ea651-7993-4396-9d0e-a4226de83598": 3, "fb4b3cdd-43c3-4238-a842-44b6009d24f7": 3}, "scopeList": {"0": ["a", "b"], "1": [], "2": []}, "scopes": [{"index": 2, "pbNum": 0, "exportedVariables": ["a", "b"], "id": "bdbb7230-eb78-437a-a298-db99f0cab3c8"}, {"index": 5, "pbNum": 1, "exportedVariables": [], "id": "0f02ee7d-318d-42b2-b9d1-874cef777c8c"}, {"index": 8, "pbNum": 2, "exportedVariables": [], "id": "f382994c-0c95-4c35-bb8f-30e13cdf3df5"}], "cellList": [{"index": 0, "id": "96213e44-5add-4916-99aa-bdf92ee22c2e", "type": "header", "variables": []}, {"index": 1, "id": "3a7c2ec7-28d6-4333-9cca-1a5830504fd3", "type": "code", "variables": []}, {"index": 2, "id": "bdbb7230-eb78-437a-a298-db99f0cab3c8", "type": "pagebreak", "variables": ["a", "b"]}, {"index": 3, "id": "c20d84b7-61a5-4255-aa09-24285a3b9c08", "type": "header", "variables": []}, {"index": 4, "id": "ea972339-1123-465f-a881-d165edfdaa26", "type": "code", "variables": []}, {"index": 5, "id": "0f02ee7d-318d-42b2-b9d1-874cef777c8c", "type": "pagebreak", "variables": []}, {"index": 6, "id": "b50e91d7-1d06-41bd-b5d5-d02598d40926", "type": "header", "variables": []}, {"index": 7, "id": "5aadb64c-c5cc-4b4a-b0c8-e818627ade38", "type": "code", "variables": []}, {"index": 8, "id": "f382994c-0c95-4c35-bb8f-30e13cdf3df5", "type": "pagebreak", "variables": []}, {"index": 9, "id": "42afe96b-0bc3-4fd7-b130-fa0e79a3e0b3", "type": "code", "variables": []}, {"index": 10, "id": "be1ea651-7993-4396-9d0e-a4226de83598", "type": "code", "variables": []}, {"index": 11, "id": "fb4b3cdd-43c3-4238-a842-44b6009d24f7", "type": "code", "variables": []}]}""",
+        )
+        with capture_output() as capture:
+            ip.run_cell_magic(
+                "pb_transform",
+                "",
+                r"""[{"index":1,"id":"3a7c2ec7-28d6-4333-9cca-1a5830504fd3","type":"code","variables":[],"source":"a = 3\nc = 2"},{"index":2,"id":"bdbb7230-eb78-437a-a298-db99f0cab3c8","type":"pagebreak","variables":[["a","b"]],"pbNum":0},{"index":4,"id":"ea972339-1123-465f-a881-d165edfdaa26","type":"code","variables":[],"source":"c = 3\nprint(b)"},{"index":5,"id":"0f02ee7d-318d-42b2-b9d1-874cef777c8c","type":"pagebreak","variables":[[]],"pbNum":1},{"index":7,"id":"5aadb64c-c5cc-4b4a-b0c8-e818627ade38","type":"code","variables":[],"source":"print(c)"},{"index":8,"id":"f382994c-0c95-4c35-bb8f-30e13cdf3df5","type":"pagebreak","variables":[[]],"pbNum":2},{"index":9,"id":"fb4b3cdd-43c3-4238-a842-44b6009d24f7","type":"code","variables":[],"source":""}]""",
+            )
+        
+        assert r"""[{"index": 1, "id": "3a7c2ec7-28d6-4333-9cca-1a5830504fd3", "type": "code", "variables": [], "source": "a = 3\nc = 2", "newText": "pb_0_a = 3\npb_0_c = 2"}, {"index": 2, "id": "bdbb7230-eb78-437a-a298-db99f0cab3c8", "type": "pagebreak", "variables": [["a", "b"]], "pbNum": 0, 
+        """
+        assert r"""newText": "pb_export_a = pb_0_a\npb_export_b = pb_0_b"}""" in capture.stdout or r"""newText": "pb_export_b = pb_0_b\npb_export_a = pb_0_a"}""" in capture.stdout
+        assert r"""{"index": 4, "id": "ea972339-1123-465f-a881-d165edfdaa26", "type": "code", "variables": [], "source": "c = 3\nprint(b)", "newText": "pb_1_c = 3\nprint(b)"}, {"index": 5, "id": "0f02ee7d-318d-42b2-b9d1-874cef777c8c", "type": "pagebreak", "variables": [[]], "pbNum": 1, "newText": ""}, {"index": 7, "id": "5aadb64c-c5cc-4b4a-b0c8-e818627ade38", "type": "code", "variables": [], "source": "print(c)", "newText": "print(c)"}, {"index": 8, "id": "f382994c-0c95-4c35-bb8f-30e13cdf3df5", "type": "pagebreak", "variables": [[]], "pbNum": 2, "newText": ""}""" in capture.stdout
