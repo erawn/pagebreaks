@@ -69,6 +69,133 @@ def f():
             )
         assert "a = 2" in capture.stdout
         assert "b = 5" in capture.stdout
+    def test_function3(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":["test", "x", "y"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+def test(x,y):
+    return "result = " + str(x + y)
+x = 3
+y = 5""",
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                raw_cell="test(1,2)\n",
+                cell_id="2",
+            )
+        assert "result = 3" in capture.stdout
+    def test_function4(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":["test"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+x = 3
+y = 5
+def test(x,y = x):
+    return "result = " + str(x + y)
+""",
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                raw_cell="x = 1\ntest(1)\n",
+                cell_id="2",
+            )
+        assert "result = 4" in capture.stdout
+    def test_function5(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1, "3":2},"scopeList":{"0":["test"],"1":["x","y"],"2":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+x = 3
+y = 5
+def test(x,y = x):
+    return "result = " + str(x + y)
+""",
+            cell_id="1",
+        )
+        ip.run_cell(
+            raw_cell="""
+x = 12
+y = 13
+""",
+            cell_id="2",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                raw_cell="test(1)\n",
+                cell_id="3",
+            )
+        assert "result = 4" in capture.stdout
+    def test_function6(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1, "3":2},"scopeList":{"0":["test"],"1":["x","y"],"2":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+x = 10
+b = 10
+t = 10
+z = 10
+y = 10
+b = 10
+kw = 10
+km= 10
+arg = 10
+def test(x,t,/,z,y=1,*b,kw=1,**arg):
+    print(x,t,z,y,b,kw,arg)
+""",
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                raw_cell="test(1,1,1,1,1,1,1,1,1,1,1,kw=1,km=1)\n",
+                cell_id="1",
+            )
+        assert "1 1 1 1 (1, 1, 1, 1, 1, 1, 1) 1 {'km': 1}" in capture.stdout
+    def test_function7(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1, "3":2},"scopeList":{"0":["x","t","z","y","b","kw","arg"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+x = 10
+b = 10
+t = 10
+z = 10
+y = 10
+b = 10
+kw = 10
+km= 10
+arg = 10
+
+""",
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                raw_cell="""
+def test(x,t,/,z,y=1,*b,kw=1,**arg):
+    print(x,t,z,y,b,kw,arg)
+test(1,1,1,1,1,1,1,1,1,1,1,kw=1,km=1)""",
+            cell_id="2",
+            )
+        assert "1 1 1 1 (1, 1, 1, 1, 1, 1, 1) 1 {'km': 1}" in capture.stdout
 
     def test_delNamesAfterError(self, ip: TerminalInteractiveShell):
         ip.run_cell_magic(
@@ -247,6 +374,30 @@ a.fill(0)
                 )
         assert "PagebreakError: Attempted to Overwrite Read-Only Exported Variables: 'a'" in capture.stdout
         assert ip.user_ns.get("pb_export_a") == None
+    
+    def test_function(self, ip: TerminalInteractiveShell):
+        ip.run_cell_magic(
+            "pb_update",
+            "",
+            r"""{"cellsToScopes":{"1":0,"2":1},"scopeList":{"0":["test"],"1":[""]}}""",
+        )
+        ip.run_cell(
+            raw_cell="""
+def test(x,y):
+    return x + y
+                    """,
+            cell_id="1",
+        )
+        with capture_output() as capture:
+            ip.run_cell(
+                    raw_cell="""
+def test(x,y):
+    return x + y + 1
+                            """,
+                    cell_id="2",
+                )
+        assert "PagebreakError: Attempted to Overwrite Read-Only Exported Variables: 'test'" in capture.stdout
+        assert ip.user_ns.get("pb_1_test") == None
 ##variable resets
 
 ## error messages

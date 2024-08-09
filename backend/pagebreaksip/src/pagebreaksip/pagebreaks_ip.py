@@ -299,9 +299,12 @@ class PagebreaksASTTransformer(baseASTTransform):
 
     def visit_Name(self, node, data: astWalkData):
         if not data.isLineMagic:
-            logger.info("visit name export variables" + str(data.exportedVariables))
+            logger.info("visit name"+ ast.dump(node)+"data")
+            logger.info(data)
+            # print("visit name"+ ast.dump(node)+"data")
+            # print(data)
         if node.id in data.namesToIgnore:
-            print("ignoring name " + node.id)
+            # print("ignoring name " + node.id)
             return node
         # check if variable is exported from another context
         for context, exportedVariables in data.exportedVariables.items():
@@ -376,15 +379,15 @@ class PagebreaksASTTransformer(baseASTTransform):
         newNames = list(map(transName, node.names))
         return ast.Global(names=newNames)
 
-    def visit_FunctionDef(self, node, data: astWalkData):
+    def visit_FunctionDef(self, node: ast.FunctionDef, data: astWalkData):
+        
         return self.handleNewBlock(node, data)
 
     def visit_ClassDef(self, node: ast.ClassDef, data: astWalkData):
         return self.handleNewBlock(node, data)
 
     def handleNewBlock(self, node, data: astWalkData):
-        if node.name in data.userDefinedVariables:
-            node.name = transformName(node.name, data.currentContext)
+        
         defFinder = DefinitionsFinder()
         newDefinitions = defFinder.getDefinitionsAtNode(node)
         # check if any defs are overwriting exported variables
@@ -403,10 +406,63 @@ class PagebreaksASTTransformer(baseASTTransform):
         # f()
         # will throw an error for this reason
 
-        data.userDefinedVariables.difference_update(newDefinitions)
+        # need to remove function arguements
+        if isinstance(node,ast.FunctionDef):
+            
+            # for default in node.args.defaults:
+            #     print(ast.dump(default))
+            #     out = self.visit(default,data)
+            #     print(ast.dump(out))
+            #     print(data)
+            node.args.defaults = [self.visit(default, data) for default in node.args.defaults]
+            node.args.kw_defaults = [self.visit(default, data) for default in node.args.kw_defaults]
+            # print(ast.dump(node))
+            node = typing.cast(ast.FunctionDef,node)
+            arguments = set()
+            for arg in node.args.args:
+                if len(arguments) == 0:
+                    arguments = set([arg.arg])
+                else:
+                    arguments.add(arg.arg)
+            for arg in node.args.kwonlyargs:
+                if len(arguments) == 0:
+                    arguments = set([arg.arg])
+                else:
+                    arguments.add(arg.arg)
+            for arg in node.args.posonlyargs:
+                if len(arguments) == 0:
+                    arguments = set([arg.arg])
+                else:
+                    arguments.add(arg.arg)
+            if node.args.kwarg is not None:
+                if len(arguments) == 0:
+                    arguments = set([node.args.kwarg.arg])
+                else:
+                    arguments.add(node.args.kwarg.arg)
+            if node.args.vararg is not None:
+                if len(arguments) == 0:
+                    arguments = set([node.args.vararg.arg])
+                else:
+                    arguments.add(node.args.vararg.arg)
 
+
+            data.namesToIgnore.update(arguments)
+        data.userDefinedVariables.difference_update(newDefinitions)
+        data.namesToIgnore.update(newDefinitions)
         self.generic_visit(node, data)
+        if node.name in data.namesToIgnore:
+            return node
+        for context, exportedVariables in data.exportedVariables.items():
+            if (
+                node.name in exportedVariables
+                and context < data.currentContext  # only export variables from earlier contexts
+            ):
+                node.name = transformName(node.name, data.currentContext, export=True)
+                return node
+        if node.name in data.userDefinedVariables:
+            node.name = transformName(node.name, data.currentContext)
         return node
+        
     
     def revertNewlyAddedNames(self):
         context = self.newlyAddedExportedVariables[0]
@@ -736,6 +792,8 @@ class Pagebreak(object):
         if isinstance(isEqual,Iterable):
             return all(isEqual)
         if isinstance(isEqual, bool):
+            # print(localVar)
+            # print(globalVar)
             return isEqual
         logger.error("nested equal returned something weird" + str(isEqual.__class__)+ str(isEqual))
         #https://stackoverflow.com/questions/18376935/best-practice-for-equality-in-python
