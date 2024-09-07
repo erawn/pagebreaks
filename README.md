@@ -4,18 +4,6 @@ Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) w
 
 The goal is to make it easier to keep variables organized in notebooks while changing as little as possible about how notebook programmers like to work. To do that, _Pagebreaks_ allows users to organize their notebook state by organizing their cells within the notebook.
 
-## Participate in Research
-
-My name is Eric Rawn. I’m a PhD student at UC Berkeley. To build the best system we can (and do some research along the way), we’re evaluating how our extension aids how real users program, and so we’re running a 4-6 week study with folks who use Jupyter notebooks regularly in their everyday programming. We're especially interested in how Pagebreaks might help _data science programmers_, so if that's you, we would really appreciate your insight!
-
-The extension will log some usage data locally on your machine, which you'll send to me at the end of the study. We'll then spend about an hour chatting about your experience, the kind of work you do daily, how you use notebooks, and any other thoughts or feedback you have. Participants will be compensated for their time spent interviewing, at $30/hour, so expect $60-$90 overall. The [consent form](https://drive.google.com/file/d/1x2wYflUFg9Nwk6prcISxfZiIgD9q1Cse/view?usp=sharing) has detailed information about the study if you’re interested. I care a lot about protecting the privacy of my participants, and so a lot of the consent form (and our first chat together at the beginning of the study) is dedicated to explaining exactly what data will be collected, how it will be used, and addressing any questions or concerns.
-
-A full open-source release will be out on PyPi after we can incorporate what we learned from the study, but you're welcome to keep using the extension after the study if you participate and find it helps you work!
-
-**If you’re interested in participating, please fill out this [interest form](https://forms.gle/m6H27Q7y6ivFVrhJA)**
-
-If you have any questions at all, feel free to send me an email at <erawn@berkeley.edu>, and feel free to forward this to anyone you think might be interested! Thanks!
-
 ## Install
 
 To install the extension, execute:
