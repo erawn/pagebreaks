@@ -1,6 +1,6 @@
 # Pagebreaks : Multi-Cell Scopes for Jupyter Notebooks
 
-Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scope boundaries between groups of cells, allowing cells within a pagebreak to share state as usual, but keeping state isolated to that group. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells.
+Pagebreaks is a Jupyter Notebooks extension (with a supporting IPython plugin) which creates scopes between groups of cells, allowing cells within a pagebreak to share state as usual, but keeping state isolated to that group. To use variables between Pagebreaks, they can be "exported" at the footer of the pagebreak in a read-only format to be used in all later cells.
 
 The goal is to make it easier to keep variables organized in notebooks while changing as little as possible about how notebook programmers like to work. To do that, _Pagebreaks_ allows users to organize their notebook state by organizing their cells within the notebook.
 
