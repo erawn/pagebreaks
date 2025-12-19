@@ -16,17 +16,15 @@ import addPagebreakIconStr from '../style/create-icon.svg';
 import '../style/index.css';
 import mergeUpIconStr from '../style/merge-up-icon.svg';
 import runPagebreakIconStr from '../style/run-pagebreak-icon.svg';
-import { activeManager } from './activeManager';
 import { buildNotebookSchema, sendTransform } from './schema';
-import { schemaManager } from './schemaManager';
 import { findHeaderandFooter, findScopeNumber } from './utils';
+import { pagebreaksState } from './state';
 function addCommands(
   app: JupyterFrontEnd,
   notebookTracker: INotebookTracker,
   updateCallback: CallableFunction,
-  schemaManager: schemaManager,
+  state: pagebreaksState,
   sessionDialogs: ISessionContextDialogs,
-  activeManager: activeManager,
   docManager: IDocumentManager
 ) {
   const { commands } = app;
@@ -250,7 +248,7 @@ function addCommands(
       }
       const scopeNum = findScopeNumber(
         notebookTracker.activeCell,
-        schemaManager.previousSchema
+        state.previousSchema
       );
       if (scopeNum <= 0) {
         return;
@@ -260,12 +258,12 @@ function addCommands(
         findHeaderandFooter(
           scopeNum,
           notebookTracker?.currentWidget?.content,
-          schemaManager?.previousSchema
+          state?.previousSchema
         );
       const [, , , destFooterIndex] = findHeaderandFooter(
         scopeNum - 1,
         notebookTracker?.currentWidget?.content,
-        schemaManager?.previousSchema
+        state?.previousSchema
       );
       const numCellsToMove = srcFooterIndex - srcHeaderIndex - 1;
 
@@ -281,13 +279,13 @@ function addCommands(
     },
     isVisible: () => {
       if (
-        activeManager.checkisActive(notebookTracker) &&
+        state.getPluginStatus() === 'active' &&
         (notebookTracker.activeCell?.model.getMetadata('pagebreak') ||
           notebookTracker.activeCell?.model.getMetadata('pagebreakheader'))
       ) {
         const scopeNum = findScopeNumber(
           notebookTracker.activeCell,
-          schemaManager.previousSchema
+          state.previousSchema
         );
         if (scopeNum > 0) {
           return true;
@@ -307,13 +305,11 @@ function addCommands(
       if (!notebook?.model) {
         return;
       }
+      const schema = buildNotebookSchema(notebookPanel!);
       const activeCell = notebook.activeCell;
-      const scopeNum = findScopeNumber(
-        activeCell,
-        schemaManager.previousSchema
-      );
+      const scopeNum = findScopeNumber(activeCell, schema);
       const cellsToRun = notebook.widgets.filter(
-        cell => findScopeNumber(cell, schemaManager.previousSchema) === scopeNum
+        cell => findScopeNumber(cell, schema) === scopeNum
       );
       console.log(cellsToRun);
       NotebookActions.runCells(
@@ -329,19 +325,19 @@ function addCommands(
     isVisible: () => {
       const scopeNum = findScopeNumber(
         notebookTracker.activeCell,
-        schemaManager.previousSchema
+        state?.previousSchema
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [, , headerIndex, footerIndex] = findHeaderandFooter(
         scopeNum,
         notebookTracker?.currentWidget?.content,
-        schemaManager?.previousSchema
+        state?.previousSchema
       );
 
       const activeCellIndex =
         notebookTracker.currentWidget?.content.activeCellIndex ?? -1;
       if (
-        activeManager.checkisActive(notebookTracker) &&
+        state.getPluginStatus() === 'active' &&
         headerIndex <= activeCellIndex &&
         footerIndex >= activeCellIndex
       ) {
@@ -414,7 +410,6 @@ function addCommands(
       updateCallback();
     },
     isVisible: () => {
-      const isActive = activeManager.checkisActive(notebookTracker);
       const currentCellIsPB =
         notebookTracker.activeCell?.model.getMetadata('pagebreak') ?? false;
       const noPBsExist =
@@ -422,7 +417,7 @@ function addCommands(
           cell => cell?.model?.getMetadata('pagebreak')
         ) === undefined;
       // console.log(isActive, currentCellIsPB, noPBsExist);
-      if (isActive) {
+      if (state.getPluginStatus() === 'active') {
         if (currentCellIsPB || noPBsExist) {
           return true;
         }

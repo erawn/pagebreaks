@@ -5,12 +5,12 @@
     "declaration": true,
     "esModuleInterop": true,
     "incremental": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "node",
     "noEmitOnError": true,
     "noImplicitAny": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",
@@ -20,8 +20,16 @@
     "strictNullChecks": true,
     "allowJs": true,
     "target": "ES2022",
-    "types": ["node", "jest"],
-    "lib": ["dom","dom.iterable"]
+    "types": [
+      "node",
+      "jest"
+    ],
+    "lib": [
+      "dom",
+      "dom.iterable"
+    ]
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

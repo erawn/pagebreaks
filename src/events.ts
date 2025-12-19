@@ -9,14 +9,13 @@ import { MimeData } from '@lumino/coreutils';
 import { Drag } from '@lumino/dragdrop';
 import { h, VirtualDOM } from '@lumino/virtualdom';
 import '../style/index.css';
-import { activeManager } from './activeManager';
 import {
   DROP_TARGET_CLASS_BOTTOM,
   PAGEBREAK_CELL_TAG,
   PAGEBREAK_HEADER_TAG
 } from './constants';
 import { sendLog } from './schema';
-import { schemaManager } from './schemaManager';
+import { pagebreaksState } from './state';
 
 const DROP_TARGET_CLASS = 'jp-mod-dropTarget';
 const DROP_SOURCE_CLASS = 'jp-mod-dropSource';
@@ -56,22 +55,15 @@ export class pagebreakEventHandlers {
   _mouseMode: 'select' | 'couldDrag' | null = null;
   _notebook: Notebook;
   _notebookPanel: NotebookPanel;
-  _manager: schemaManager;
-  _activeManager: activeManager;
+  _state: pagebreaksState;
 
-  constructor(
-    notebookPanel: NotebookPanel,
-    manager: schemaManager,
-    activeManager: activeManager
-  ) {
-    this._manager = manager;
-    this._activeManager = activeManager;
+  constructor(notebookPanel: NotebookPanel, state: pagebreaksState) {
+    this._state = state;
     this._notebook = notebookPanel.content;
     this._notebookPanel = notebookPanel;
-    if (this._activeManager.isActive()) {
+    if (this._state.getPluginStatus() === 'active') {
       this.addListeners();
     }
-    this.addStudyListeners();
   }
 
   public get currentNotebook(): Notebook {
@@ -80,61 +72,8 @@ export class pagebreakEventHandlers {
   update(notebookPanel: NotebookPanel) {
     this._notebook = notebookPanel.content;
     this._notebookPanel = notebookPanel;
-    if (this._activeManager.isActive()) {
+    if (this._state.getPluginStatus() === 'active') {
       this.addListeners();
-    }
-    this.addStudyListeners();
-  }
-  addStudyListeners() {
-    // this._notebookPanel.node.addEventListener('scrollend', this, {
-    //   passive: true
-    // });
-    this._notebookPanel.node
-      .querySelector('[data-lm-dragscroll="true"]')
-      ?.addEventListener('scrollend', this, {
-        passive: true
-      });
-    // const elems = document.querySelectorAll('[data-lm-dragscroll="true"]');
-    // elems.forEach(elem => {
-    //   elem.classList;
-    // });
-    // console.log(this._notebookPanel.node.getAttribute('data-lm-dragscroll'));
-    // const elements = this._notebookPanel.node.getElements;
-    // console.log(elements);
-    // for (let i = 0; i < elements.length; i++) {
-    //   const item = elements.item(i);
-    //   console.log(item);
-    //   // console.log(item?.getAttributeNames());
-    //   const children = item?.getElementsByClassName('jp-WindowedPanel-outer');
-    //   console.log(children);
-    //   if (children && children?.length > 0) {
-    //     console.log('added event listener!');
-    //     children.item(0)?.addEventListener('scrollend', this, {
-    //       passive: true
-    //     });
-    //   }
-    // }
-    // .getElementsByClassName('data-lm-dragscroll')
-    // if (this._notebook.outerNode === undefined) {
-    //   console.log("Pagebreaks: Can't Attach ScrollEnd");
-    //   if (this._notebookPanel.content.outerNode) {
-    //     this._notebookPanel.content.outerNode.addEventListener(
-    //       'scrollend',
-    //       this,
-    //       { passive: true }
-    //     );
-    //   }
-    // } else {
-    //   this._notebook.outerNode?.addEventListener('scrollend', this, {
-    //     passive: true
-    //   });
-    // }
-  }
-  removeStudyListeners() {
-    if (this._notebook.outerNode === undefined) {
-      console.log("Pagebreaks: Can't Attach ScrollEnd");
-    } else {
-      this._notebook.outerNode?.removeEventListener('scrollend', this);
     }
   }
 
@@ -172,14 +111,9 @@ export class pagebreakEventHandlers {
   switchNotebooks(newNotebookPanel: NotebookPanel) {
     // console.log('switching listeners');
     this.removeListeners();
-    this.removeStudyListeners();
-    this._notebook = newNotebookPanel.content;
-    this._notebookPanel = newNotebookPanel;
-    if (this._activeManager.isActive()) {
-      this.addListeners();
-    }
-    this.addStudyListeners();
+    this.update(newNotebookPanel);
   }
+
   handleEvent(event: Event): void {
     if (!this._notebook.model) {
       console.log('no model');
@@ -227,145 +161,6 @@ export class pagebreakEventHandlers {
     }
   }
 
-  // notebookEventHandlers(app: JupyterFrontEnd) {
-  //     const notebookPanel = app.shell.currentWidget as NotebookPanel;
-  //     const notebook = notebookPanel.content;
-  //     //Drag-related overrides
-  //     // notebook.node.removeEventListener('lm-dragenter', notebook, true);
-  //     notebook.node.removeEventListener('lm-dragover', notebook, true);
-  //     notebook.node.removeEventListener('lm-drop', notebook, true);
-
-  //     //addEventListener will not add duplicates, so we can run it many times
-
-  //     //we just want to pre-empt the mousemove event to select the whole pb,
-  //     //so we add the listener to the shell
-  //     // app.shell.node.addEventListener(
-  //     //     'mousemove',
-  //     //     (ev: Event) => handleMouseMove(ev as Drag.Event, notebook),
-  //     //     true
-  //     // );
-  //     // notebook.node.addEventListener(
-  //     //     'lm-dragover',
-  //     //     (ev: Event) => handleDragOver(ev as Drag.Event, notebook),
-  //     //     true
-  //     // );
-  //     // notebook.node.addEventListener(
-  //     //     'lm-drop',
-  //     //     (ev: Event) => handleDrop(ev as Drag.Event, notebook),
-  //     //     true
-  //     // );
-  // }
-
-  // pgEventHandlers(app: JupyterFrontEnd, manager: schemaManager) {
-  //   const notebookPanel = app.shell.currentWidget as NotebookPanel;
-  //   const notebook = notebookPanel.content;
-
-  //   notebook.widgets.forEach((cell, index) => {
-  //     if (cell?.model.getMetadata('pagebreakheader')) {
-  //       cell.node.onclick = (ev: MouseEvent) => onHeaderCellClick(ev, cell);
-  //     } else if (cell?.model.getMetadata('pagebreak')) {
-  //       cell.node.onclick = (ev: MouseEvent) => onPagebreakCellClick(ev, cell);
-  //     }
-  //   });
-  //   function onPagebreakCellClick(ev: MouseEvent, cell: Cell) {
-  //     const pbNum =
-  //       manager?.previousSchema?.scopes.find(
-  //         searchCell => searchCell.id === cell.model.id
-  //       )?.pbNum ?? -1;
-  //     const matchingPbHeader =
-  //       notebook?.widgets?.find(
-  //         searchCell =>
-  //           searchCell.model.getMetadata('pagebreakheader') &&
-  //           manager?.previousSchema?.cellsToScopes?.[searchCell.model.id] ===
-  //             pbNum
-  //       ) ?? undefined;
-  //     console.log(matchingPbHeader);
-  //     const matchingPbHeaderIndex = notebook?.widgets?.findIndex(
-  //       searchCell => searchCell.model.id === matchingPbHeader?.model.id
-  //     );
-  //     if (matchingPbHeader !== undefined) {
-  //       const pbIndex = notebook.activeCellIndex;
-  //       console.log('active cell index', pbIndex);
-  //       console.log('matchingpbindex', matchingPbHeaderIndex);
-  //       const { head, anchor } = notebook.getContiguousSelection();
-  //       if (
-  //         (head === matchingPbHeaderIndex && anchor === pbIndex) ||
-  //         (head === pbIndex && anchor === matchingPbHeaderIndex)
-  //       ) {
-  //         return;
-  //       }
-  //       // notebook.content.activeCellIndex = matchingPbHeaderIndex
-  //       // notebook.content.select(matchingPbHeader)
-  //       // notebook.update()
-  //       // notebook.content.update()
-  //       // notebook.content.activeCell?.update()
-  //       // console.log('selectedcellind', notebook.content.activeCellIndex)
-  //       notebook.extendContiguousSelectionTo(matchingPbHeaderIndex);
-  //       notebook.update();
-  //       notebook.update();
-  //     }
-  //   }
-  //   function onHeaderCellClick(ev: MouseEvent, cell: Cell) {
-  //     console.log('clicked!');
-  //     ev.stopPropagation();
-  //     ev.preventDefault();
-  //     ev.stopImmediatePropagation();
-  //     const scopeNum =
-  //       manager?.previousSchema?.cellsToScopes?.[cell.model.id] ?? -1;
-  //     const matchingPbIndex =
-  //       manager?.previousSchema?.scopes.find(scope => scope.pbNum === scopeNum)
-  //         ?.index ?? -1;
-
-  //     if (matchingPbIndex >= 0) {
-  //       const overlappingHeaders = notebook.widgets.filter(
-  //         (searchCell, index) =>
-  //           searchCell.model.getMetadata('pagebreakheader') &&
-  //           index < matchingPbIndex &&
-  //           index > notebook.activeCellIndex
-  //       );
-
-  //       if (overlappingHeaders.length === 0) {
-  //         //this should always be true when the order is correct, but if its messed up, we need to be able to select the individual headers to fix it
-  //         notebook.extendContiguousSelectionTo(matchingPbIndex);
-  //         notebook.update();
-  //       }
-  //     }
-  //   }
-  // }
-  // handleMouseMove(event: Drag.Event): void {
-  //     const notebook = this._notebook
-  //     const data = this._dragData!;
-  //     const dx = Math.abs(event.clientX - data.pressX);
-  //     const dy = Math.abs(event.clientY - data.pressY);
-  //     if (dx >= DRAG_THRESHOLD || dy >= DRAG_THRESHOLD) {
-  //         ;
-  //     }
-
-  //     // If in select mode, update the selection
-  //     // switch (this._mouseMode) {
-  //     //     case 'select': {
-  //     //       const target = event.target as HTMLElement;
-  //     //       const index = this._findCell(target);
-  //     //       if (index !== -1) {
-  //     //         this.extendContiguousSelectionTo(index);
-  //     //       }
-  //     //       break;
-  //     //     }
-  //     //     case 'couldDrag': {
-  //     //       // Check for a drag initialization.
-  //     //       const data = this._dragData!;
-  //     //       const dx = Math.abs(event.clientX - data.pressX);
-  //     //       const dy = Math.abs(event.clientY - data.pressY);
-  //     //       if (dx >= DRAG_THRESHOLD || dy >= DRAG_THRESHOLD) {
-  //     //         this._mouseMode = null;
-  //     //         this._startDrag(data.index, event.clientX, event.clientY);
-  //     //       }
-  //     //       break;
-  //     //     }
-  //     //     default:
-  //     //       break;
-  //     //   }
-  // }
   handleScrollEnd(event: MouseEvent): void {
     // console.log('SCROLLEND', event);
     const onScreen = this._notebook.widgets
@@ -390,7 +185,7 @@ export class pagebreakEventHandlers {
     sendLog(
       this._notebookPanel,
       'SCROLLEND [' + firstVisible + ',' + lastVisible + ']',
-      this._activeManager
+      this._state
     );
   }
   handleDragLeave(event: Drag.Event): void {
@@ -600,7 +395,7 @@ export class pagebreakEventHandlers {
           if (isHeader || isFooter) {
             let headerIndex = -1;
             let footerIndex = -1;
-            const schema = this._manager?.previousSchema;
+            const schema = this._state?.previousSchema;
             if (isHeader) {
               headerIndex = targetIndex;
               const scopeNum = schema?.cellsToScopes?.[targetCell.model.id];
@@ -640,7 +435,7 @@ export class pagebreakEventHandlers {
                 this._notebook?.widgets?.find(
                   searchCell =>
                     searchCell.model.getMetadata('pagebreakheader') &&
-                    this._manager?.previousSchema?.cellsToScopes?.[
+                    this._state?.previousSchema?.cellsToScopes?.[
                       searchCell.model.id
                     ] === footerPbNum
                 ) ?? undefined;
@@ -770,61 +565,6 @@ export class pagebreakEventHandlers {
     isBottom: boolean,
     notebook: Notebook
   ): boolean {
-    //isValid, isPagebreak
-    //search for header and footer
-
-    // let collapsedIndex = -1;
-    // // for (let i = 0; i < sourceElements.length; i++) {
-    // //   const elem = sourceElements.item(i);
-    // //   if (elem?.classList.contains(MARKDOWN_COLLAPSED_CLASS)) {
-    // //     collapsedIndex = this.findCell(elem as HTMLElement, notebook);
-    // //   }
-    // // }
-    // const cell = toMove[toMove.length - 1];
-    // if (cell instanceof MarkdownCell && cell.headingCollapsed) {
-    //   collapsedIndex = findIndex(notebook.widgets, (searchCell: Cell) => {
-    //     return cell.model.id === searchCell.model.id;
-    //   });
-    // }
-
-    // let header = -1;
-    // let footer = -1;
-
-    // if (collapsedIndex !== -1) {
-    //   const headerCell = notebook.widgets.at(collapsedIndex) as MarkdownCell;
-    //   for (
-    //     let ind = collapsedIndex;
-    //     ind < collapsedIndex + headerCell.numberChildNodes + 1;
-    //     ind++
-    //   ) {
-    //     const cell = notebook.widgets.at(ind);
-    //     if (cell?.model.getMetadata('pagebreak') === true) {
-    //       //if we find two headers in the collapse
-    //       if (footer !== -1) {
-    //         return [false, true];
-    //       } else {
-    //         footer = ind - collapsedIndex;
-    //       }
-    //     }
-    //     if (cell?.model.getMetadata('pagebreakheader') === true) {
-    //       if (header !== -1) {
-    //         return [false, true];
-    //       } else {
-    //         header = ind - collapsedIndex;
-    //       }
-    //     }
-    //   }
-    // } else {
-    //   // for (let i = 0; i < sourceElements.length; i++) {
-    //   //   const elem = sourceElements.item(i);
-    //   //   if (elem?.classList.contains(PAGEBREAK_HEADER_TAG)) {
-    //   //     header = i;
-    //   //   }
-    //   //   if (elem?.classList.contains(PAGEBREAK_CELL_TAG)) {
-    //   //     footer = i;
-    //   //   }
-    //   // }
-    // }
     const header = toMove.findIndex(cell =>
       cell.hasClass(PAGEBREAK_HEADER_TAG)
     );
@@ -889,156 +629,6 @@ export class pagebreakEventHandlers {
     return false;
   }
 
-  // handleDrop(event: Drag.Event): void {
-  //   const notebook = this._notebook;
-  //   if (!event.mimeData.hasData(JUPYTER_CELL_MIME)) {
-  //     return;
-  //   }
-  //   event.preventDefault();
-  //   event.stopPropagation();
-  //   if (event.proposedAction === 'none') {
-  //     event.dropAction = 'none';
-  //     return;
-  //   }
-
-  //   let target = event.target as HTMLElement;
-
-  //   //PAGEBREAK CHANGE: check if the source and target are valid
-  //   let index = this.findCell(target, notebook);
-  //   let isBottom = false;
-  //   if (index === -1) {
-  //     index = notebook.widgets.length - 1;
-  //     isBottom = true;
-  //   }
-  //   const targetWidget = notebook.widgets[index];
-  //   const sourceElements =
-  //     notebook.node.getElementsByClassName(DROP_SOURCE_CLASS);
-  //   const [isValid, isPagebreak] = this.isValidDrop(
-  //     targetWidget,
-  //     sourceElements,
-  //     isBottom,
-  //     notebook
-  //   );
-  //   if (!isValid) {
-  //     if (this._notebook.selectedCells.length > 1) {
-  //       this._notebook.deselectAll();
-  //       this._notebook.select(this._notebook.activeCell!);
-  //     }
-  //     return;
-  //   }
-
-  //   notebook.widgets.forEach(cell =>
-  //     cell.node.classList.remove(DROP_TARGET_CLASS_BOTTOM)
-  //   );
-  //   //PAGEBREAK CHANGE: check if the source and target are valid
-
-  //   while (target && target.parentElement) {
-  //     if (target.classList.contains(DROP_TARGET_CLASS)) {
-  //       target.classList.remove(DROP_TARGET_CLASS);
-  //       target.classList.remove(DROP_TARGET_CLASS_BOTTOM);
-  //       break;
-  //     }
-  //     target = target.parentElement;
-  //   }
-
-  //   // Model presence should be checked before calling event handlers
-  //   const model = notebook.model!;
-
-  //   const source: Notebook = event.source;
-  //   if (source === notebook) {
-  //     // Handle the case where we are moving cells within
-  //     // the same notebook.
-  //     event.dropAction = 'move';
-  //     const toMove: Cell[] = event.mimeData.getData('internal:cells');
-
-  //     // For collapsed markdown headings with hidden "child" cells, move all
-  //     // child cells as well as the markdown heading.
-  //     const cell = toMove[toMove.length - 1];
-  //     let recollapse = false;
-  //     if (cell instanceof MarkdownCell && cell.headingCollapsed) {
-  //       const nextParent = NotebookActions.findNextParentHeading(cell, source);
-  //       const index = findIndex(source.widgets, (possibleCell: Cell) => {
-  //         return cell.model.id === possibleCell.model.id;
-  //       });
-  //       console.log('dropping', nextParent);
-  //       if (nextParent > 0 && nextParent < source.widgets.length) {
-  //         toMove.push(...source.widgets.slice(index + 1, nextParent));
-  //       } else {
-  //         //if this is the last header, make sure we don't move cells below the pb
-  //         const scopeNum = Utils.findScopeNumber(
-  //           cell,
-  //           this._manager.previousSchema
-  //         );
-  //         const [, , , footerIndex] = Utils.findHeaderandFooter(
-  //           scopeNum,
-  //           notebook,
-  //           this._manager.previousSchema
-  //         );
-  //         cell.headingCollapsed = false;
-  //         console.log('found collapse to drag', index, footerIndex);
-  //         toMove.push(...source.widgets.slice(index + 1, footerIndex + 1));
-  //         recollapse = true;
-  //       }
-  //     }
-
-  //     // Compute the to/from indices for the move.
-  //     const fromIndex = ArrayExt.firstIndexOf(notebook.widgets, toMove[0]);
-  //     let toIndex = this.findCell(target, notebook);
-  //     // This check is needed for consistency with the view.
-  //     if (toIndex !== -1 && toIndex > fromIndex) {
-  //       toIndex -= 1;
-  //     } else if (toIndex === -1) {
-  //       // If the drop is within the notebook but not on any cell,
-  //       // most often this means it is past the cell areas, so
-  //       // set it to move the cells to the end of the notebook.
-  //       toIndex = notebook.widgets.length - 1;
-  //       // if (isPagebreak) {
-  //       //   let lastPbIndex = -1;
-  //       //   notebook.widgets.forEach((searchCell, index) => {
-  //       //     if (searchCell?.model.getMetadata('pagebreak') === true) {
-  //       //       if (lastPbIndex < index) {
-  //       //         lastPbIndex = index;
-  //       //       }
-  //       //     }
-  //       //   });
-  //       //   if (lastPbIndex > -1) {
-  //       //     toIndex = lastPbIndex;
-  //       //   }
-  //       // } else {
-  //       //   toIndex = notebook.widgets.length - 1;
-  //       // }
-  //     }
-  //     // Don't move if we are within the block of selected cells.
-  //     if (toIndex >= fromIndex && toIndex < fromIndex + toMove.length) {
-  //       return;
-  //     }
-
-  //     // Move the cells one by one
-  //     notebook.moveCell(fromIndex, toIndex, toMove.length);
-  //     if (recollapse) {
-  //       (cell as MarkdownCell).headingCollapsed = true;
-  //     }
-  //   } else {
-  //     // Handle the case where we are copying cells between
-  //     // notebooks.
-  //     event.dropAction = 'copy';
-  //     // Find the target cell and insert the copied cells.
-  //     let index = this.findCell(target, notebook);
-  //     if (index === -1) {
-  //       index = notebook.widgets.length;
-  //     }
-  //     const start = index;
-  //     const values = event.mimeData.getData(JUPYTER_CELL_MIME);
-  //     // Insert the copies of the original cells.
-  //     // We preserve trust status of pasted cells by not modifying metadata.
-  //     model.sharedModel.insertCells(index, values);
-  //     // Select the inserted cells.
-  //     notebook.deselectAll();
-  //     notebook.activeCellIndex = start;
-  //     notebook.extendContiguousSelectionTo(index - 1);
-  //   }
-  //   void NotebookActions.focusActiveCell(notebook);
-  // }
   handleDrop(event: Drag.Event): void {
     const notebook = this._notebook;
     console.log('handle Drop');

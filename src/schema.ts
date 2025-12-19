@@ -6,11 +6,8 @@ import {
   NotebookTracker
 } from '@jupyterlab/notebook';
 import { Kernel, KernelMessage } from '@jupyterlab/services';
-import _ from 'lodash';
-import { activeManager } from './activeManager';
-import { schemaManager } from './schemaManager';
 import { IPagebreakCell, PagebreakSchema, PagebreakScopeList } from './types';
-const sendJSONDiffThrottle = _.throttle(sendJSONDiffInner, 200);
+import { pagebreaksState } from './state';
 
 function buildNotebookSchema(notebook: NotebookPanel) {
   const cells = notebook.content.widgets;
@@ -138,9 +135,13 @@ function buildNotebookSchema(notebook: NotebookPanel) {
 function sendSchema(
   notebook: NotebookPanel,
   schema: string,
-  manager: schemaManager
+  state: pagebreaksState
 ) {
   // console.log('send Schema');
+  if (!notebook?.sessionContext || !notebook?.sessionContext?.session?.kernel) {
+    console.log("PB: Not sending schema because kernel isn't connected");
+    return;
+  }
 
   const content: KernelMessage.IExecuteRequestMsg['content'] = {
     code: '%%pb_update \n' + schema,
@@ -154,7 +155,7 @@ function sendSchema(
     throw new Error('Session has no kernel.');
   }
 
-  if (manager.future === null || manager.future.isDisposed) {
+  if (state.future === null || state.future.isDisposed) {
     console.log('sending Schema');
     const future = kernel.requestExecute(content);
     // Handle iopub messages
@@ -164,7 +165,7 @@ function sendSchema(
         console.log('sendSchema', msg);
       }
     };
-    manager.future = future;
+    state.future = future;
   }
 
   // kernelModel.execute();
@@ -194,13 +195,13 @@ function parseExport(input: string): string[] | null {
 function sendLog(
   notebookTracker: INotebookTracker | NotebookPanel,
   message: string,
-  activeManager: activeManager
+  state: pagebreaksState
 ) {
   // console.log('send Schema');
-  if (!activeManager.checkIsLogging()) {
-    console.log('Not sending log because its diabled');
-    return;
-  }
+  // if (!activeManager.checkIsLogging()) {
+  //   console.log('Not sending log because its diabled');
+  //   return;
+  // }
 
   const notebook =
     notebookTracker instanceof NotebookTracker
@@ -260,18 +261,10 @@ function sendTransform(
 
   // kernelModel.execute();
 }
+
 function sendJSONDiff(
   notebookTracker: INotebookTracker,
-  manager: schemaManager,
-  isActiveManager: activeManager
-) {
-  sendJSONDiffThrottle(notebookTracker, manager, isActiveManager);
-}
-
-function sendJSONDiffInner(
-  notebookTracker: INotebookTracker,
-  manager: schemaManager,
-  isActiveManager: activeManager
+  state: pagebreaksState
 ) {
   // console.log('NBFORMAT', notebook.model?.nbformatMinor);
   //from https://github.com/jupyter-server/jupyter_ydoc/blob/eefbbcc7812e53c36ccc7fca9f031513562c0da6/javascript/src/ynotebook.ts#L446
@@ -316,30 +309,25 @@ function sendJSONDiffInner(
     cell.index = index;
     cell.execution_count ? (cell.execution_count = null) : {};
   });
-  if (isActiveManager.checkisActive(notebookTracker)) {
-    const schema = buildNotebookSchema(notebook);
-    json.cells.forEach((cell, index) => {
-      const isHeader = cell.metadata.pagebreakheader === true;
-      const isFooter = cell.metadata.pagebreak === true;
-      cell.metadata ? (cell.metadata = {}) : {};
-      isHeader ? (cell.metadata.pagebreakheader = true) : {};
-      isFooter ? (cell.metadata.pagebreak = true) : {};
-      const id = cell.id?.toString();
-      if (id && schema.cellsToScopes) {
-        const scopeNum = schema.cellsToScopes[id];
-        if (scopeNum !== undefined) {
-          cell.pagebreak = scopeNum;
-        }
+  const schema = buildNotebookSchema(notebook);
+  json.cells.forEach((cell, index) => {
+    const isHeader = cell.metadata.pagebreakheader === true;
+    const isFooter = cell.metadata.pagebreak === true;
+    cell.metadata ? (cell.metadata = {}) : {};
+    isHeader ? (cell.metadata.pagebreakheader = true) : {};
+    isFooter ? (cell.metadata.pagebreak = true) : {};
+    const id = cell.id?.toString();
+    if (id && schema.cellsToScopes) {
+      const scopeNum = schema.cellsToScopes[id];
+      if (scopeNum !== undefined) {
+        cell.pagebreak = scopeNum;
       }
-    });
-  }
+    }
+  });
+
   // sendLog(notebookTracker, 'NAME' + notebook.title.label, isActiveManager);
   console.log('Sending JSON Log');
-  sendLog(
-    notebookTracker,
-    'RELOAD_NOTEBOOK:' + JSON.stringify(json),
-    isActiveManager
-  );
+  sendLog(notebookTracker, 'RELOAD_NOTEBOOK:' + JSON.stringify(json), state);
 }
 
 // function orderCells(notebook: NotebookPanel, schema: PagebreakInternalSchema) {

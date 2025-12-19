@@ -84,9 +84,8 @@ class pagebreak_magics(Magics):
                     scopeNum = int(scopeName)
                     newVal = varsByScope.get(scopeNum,[])
                     newVal.append((name.partition("_"+scopeName+"_")[2],self.shell.user_ns[name],get_type(self.shell.user_ns[name])))
-                    # print("new val",newVal)
                     varsByScope.update({scopeNum: newVal})
-        # print("vars", varsByScope)
+
         #need to keep dummy list for formatting
         allVarnames = varnames
         allVarlist = [self.shell.user_ns[n] for n in allVarnames]
@@ -127,40 +126,8 @@ class pagebreak_magics(Magics):
         Mb = 1048576  # kb**2
         def printEntry(vname: str,var: Any,vtype:str, scope: str = "global", exported:str = ""):
             print(vformat.format(vname, vtype, scope, str(exported), varwidth=varwidth, typewidth=typewidth, scopewidth=scopewidth, exportedwidth=exportedwidth), end='\n')
-            # if vtype in seq_types:
-            #     print("n="+str(len(var)))
-            # elif vtype == ndarray_type:
-            #     vshape = str(var.shape).replace(',','').replace(' ','x')[1:-1]
-            #     if vtype==ndarray_type:
-            #         # numpy
-            #         vsize  = var.size
-            #         vbytes = vsize*var.itemsize
-            #         vdtype = var.dtype
-
-            #     if vbytes < 100000:
-            #         print(aformat % (vshape, vsize, vdtype, vbytes))
-            #     else:
-            #         print(aformat % (vshape, vsize, vdtype, vbytes), end=' ')
-            #         if vbytes < Mb:
-            #             print('(%s kb)' % (vbytes/kb,))
-            #         else:
-            #             print('(%s Mb)' % (vbytes/Mb,))
-            # else:
-            #     try:
-            #         vstr = str(var)
-            #     except UnicodeEncodeError:
-            #         vstr = var.encode(DEFAULT_ENCODING,
-            #                             'backslashreplace')
-            #     except:
-            #         vstr = "<object with id %d (str() failed)>" % id(var)
-            #     vstr = vstr.replace('\n', '\\n')
-            #     if len(vstr) < 50:
-            #         print(vstr)
-            #     else:
-            #         print(vstr[:25] + "<...>" + vstr[-25:])
 
         for scopeNum in sorted(varsByScope):
-            # print("Pagebreak : ", str(scopeNum))
             for variable in varsByScope[scopeNum]:
                 (vName, val, vType) = variable
                 printEntry(vName,val,vType,str(scopeNum),str(self.shell.user_ns.get("pb_export_"+vName) is not None))
@@ -175,41 +142,26 @@ class pagebreak_magics(Magics):
         msg = typing.cast(str,cell)
         match = reload_regex.match(msg)
         if match:
-            # logger.info("FOUND MATCH")
             name = match.group(1)
-            # logger.info("name")
             logger.info(str(name))
             msg = msg[match.end():]
             logger.info("MSG" + str(msg))
             jsonMSG = typing.cast(dict,json.loads(msg, strict=False))
-            # logger.info("jsonmsg" +str(type(jsonMSG)) + str(jsonMSG))
-            # logger.info("currentJSON" + str(self.currentJSON))
             if not isinstance(name,str):
                 name = ""
                 logger.info("cant find notebook name!")
-            # logger.info(str(name))
             if not self.currentJSON:
-                # logger.info("reload" + str(jsonMSG))
                 study_logger.info("NOTEBOOK_RELOAD ["+name+"]" + str(jsonMSG))
             else:
                 
                 diff = typing.cast(dict,jd.diff(self.currentJSON,jsonMSG))
-                # if "notebookName" in diff:
-                #     study_logger.info("NOTEBOOK_RELOAD" + str(jsonMSG))
-                # else:
                 logger.info(diff)
                 if(len(diff) > 0):
                     logger.info(diff)
                     study_logger.info("NOTEBOOK_UPDATE ["+name+"]" + str(diff))
-                # patch = jd.patch(self.currentJSON, json.loads(diff))
-                # logger.info("patch" + str(patch == jsonMSG))
-            # logger.info("after if")
-            # logger.info(str(type(jsonMSG)))
-            # logger.info(str(type(self.currentJSON)))
             
             self.currentJSON = jsonMSG
             
-            # logger.info("currentJSONAFTER" + str(self.currentJSON))
         else:
             study_logger.info(cell)
         return
@@ -254,35 +206,31 @@ class pagebreak_magics(Magics):
                 cell["newText"] = newText
                 
         print(json.dumps(cellList))
-        # program_ast = self.shell.compile.ast_parse(msg)
-        # # program_ast = asttokens.ASTTokens(msg,parse=True)
-        # transformed = self._pb.ast_transformer.visit(program_ast)
-        # print(ast.dump(transformed))
-        # Assign(targets=[Name(id='pb_0_a', ctx=Store())], value=Constant(value=2))
-        # print(ast.unparse(transformed))
         return
-    @line_magic 
-    def pb_transform_export(self,line):
-        msg = typing.cast(str,line)
-        pbnum = int(msg)
-        print(pbnum)
-        exportvars = self._pb.ast_transformer.getStoredData().exportedVariables.get(pbnum)
-        print(exportvars)
-        base = ast.Module(body=[],type_ignores=[])
+    
+    # @line_magic 
+    # def pb_transform_export(self,line):
+    #     msg = typing.cast(str,line)
+    #     pbnum = int(msg)
+    #     print(pbnum)
+    #     exportvars = self._pb.ast_transformer.getStoredData().exportedVariables.get(pbnum)
+    #     print(exportvars)
+    #     base = ast.Module(body=[],type_ignores=[])
         
-        for var,index in zip(exportvars,range(len(exportvars))):
-            exportName = pagebreaksip.transformName(var,pbnum,True)
-            localName = pagebreaksip.transformName(var,pbnum,False)
-            base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
-        print(ast.unparse(base))
-        return 
+    #     for var,index in zip(exportvars,range(len(exportvars))):
+    #         exportName = pagebreaksip.transformName(var,pbnum,True)
+    #         localName = pagebreaksip.transformName(var,pbnum,False)
+    #         base.body.append(ast.Assign(targets=[ast.Name(id=exportName,ctx=ast.Store())],value=ast.Name(id=localName,ctx=ast.Load()),lineno=index,col_offset=0))
+    #     print(ast.unparse(base))
+    #     return 
+    
     @cell_magic
     def pb_update(self, line, cell):
         "Magic that works both as %lcmagic and as %%lcmagic"
         schema = json.loads(cell)
         logger.info("pb_update" + str(schema))
         self.schema = schema
-        self.shell.user_ns["___pbschema"] = schema
+        # self.shell.user_ns["___pbschema"] = schema
         # print("Called pb update line magic")
         # print(line)
         return

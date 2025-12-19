@@ -13,6 +13,9 @@ pagebreaks/__pycache__/
 # Version file is handled by hatchling
 _version.py
 venv
+.virtual_documents
+Untitled*.ipynb
+backend/Demos
 testenv
 backend/pagebreak/Demos/** */
 backend/Demos/babynames/*

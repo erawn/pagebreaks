@@ -6,17 +6,16 @@ import {
 } from '@jupyterlab/ui-components';
 import { find } from '@lumino/algorithm';
 import { Widget } from '@lumino/widgets';
-import * as React from 'react';
-import { schemaManager } from './schemaManager';
+import { pagebreaksState } from './state';
 const TOOLBAR_VARIABLE_LIST_CLASS = 'jp-pb-variableList';
 
 interface IVariableListProps {
   tracker: INotebookTracker;
-  manager: schemaManager;
+  state: pagebreaksState;
 }
 export function addVariableListWidget(
   tracker: INotebookTracker,
-  manager: schemaManager
+  state: pagebreaksState
 ) {
   // console.log('printing names');
   // for (const name of tracker?.currentWidget?.toolbar?.names() ?? '') {
@@ -33,21 +32,21 @@ export function addVariableListWidget(
   tracker?.currentWidget?.toolbar.insertAfter(
     'spacer',
     'variableList',
-    createVariableList(tracker, manager)
+    createVariableList(tracker, state)
   );
 }
 function createVariableList(
   notebookTracker: INotebookTracker,
-  manager: schemaManager
+  state: pagebreaksState
 ): Widget {
   const el = ReactWidget.create(
-    <VariableListComponent tracker={notebookTracker} manager={manager} />
+    <VariableListComponent tracker={notebookTracker} state={state} />
   );
   return el;
 }
 
 function getVariableList(props: IVariableListProps): string {
-  const schema = props.manager.previousSchema;
+  const schema = props.state.previousSchema;
   const id = props.tracker.activeCell?.model?.id;
 
   const scopeNum = id

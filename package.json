@@ -69,7 +69,9 @@
         "husky": "^9.0.11",
         "json-diff-ts": "^4.0.1",
         "lint-staged": "^15.2.4",
-        "lodash": "^4.17.21"
+        "lodash": "^4.17.21",
+        "playwright": "^1.57.0",
+        "react-colorful": "^5.6.1"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.0.0",

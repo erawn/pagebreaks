@@ -25,11 +25,18 @@ type PagebreakInternalSchema = {
   cellList: PagebreakSchema;
 };
 type pluginStatus = 'active' | 'inactive' | 'unset';
+
+type pagebreakSettings = {
+  compareForChanges: boolean;
+  isolateModules: boolean;
+  defaultColors: any;
+};
 export {
   IPagebreakCell,
   IPagebreakScope,
   PagebreakInternalSchema,
   PagebreakSchema,
   PagebreakScopeList,
-  pluginStatus
+  pluginStatus,
+  pagebreakSettings
 };
